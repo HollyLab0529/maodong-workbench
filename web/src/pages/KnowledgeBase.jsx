@@ -8,6 +8,7 @@ import {
 } from "../components/ui";
 import { Plus, Search, BookOpen, Pencil, Trash2, ImagePlus, Loader2, Sparkles, Download } from "lucide-react";
 import { downloadText, safeName } from "../download";
+import { tagChip } from "../colors";
 
 const CATEGORIES = ["技术学习", "求职经验", "项目复盘", "工具技巧", "其他"];
 
@@ -263,7 +264,7 @@ export default function KnowledgeBase() {
               <div className="flex items-center justify-between">
                 <div className="flex flex-wrap gap-1">
                   {(a.tags || "").split(/[,，]/).filter(Boolean).slice(0, 3).map((t) => (
-                    <span key={t} className="rounded bg-slate-100 px-1.5 py-0.5 text-[11px] text-slate-600">
+                    <span key={t} className={`rounded px-1.5 py-0.5 text-[11px] ${tagChip(t)}`}>
                       #{t.trim()}
                     </span>
                   ))}
@@ -390,7 +391,7 @@ export default function KnowledgeBase() {
                 {viewing.category || "未分类"}
               </span>
               {(viewing.tags || "").split(/[,，]/).filter(Boolean).map((t) => (
-                <span key={t} className="rounded bg-slate-100 px-1.5 py-0.5 text-[11px] text-slate-600">#{t.trim()}</span>
+                <span key={t} className={`rounded px-1.5 py-0.5 text-[11px] ${tagChip(t)}`}>#{t.trim()}</span>
               ))}
               <span className="text-xs text-slate-400">{fmtTime(viewing.created_at)}</span>
               <div className="ml-auto flex items-center gap-1">
