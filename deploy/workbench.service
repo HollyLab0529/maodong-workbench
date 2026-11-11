@@ -1,0 +1,16 @@
+[Unit]
+Description=徐笑晗的个人工作台 (workbench)
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/workbench
+ExecStart=/usr/local/bin/node /opt/workbench/server/index.js
+Environment=PORT=3031
+Environment=DATA_DIR=/opt/workbench/data
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
