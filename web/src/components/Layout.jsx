@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "../auth";
 import { exportUrl } from "../api";
-import { resolveModules } from "../modules";
+import { resolveModules, resolveNavGroups } from "../modules";
 import GlobalSearch from "./GlobalSearch";
 import CatLogo from "./CatLogo";
 import ThemePicker from "./ThemePicker";
@@ -95,6 +95,8 @@ export default function Layout({ children }) {
   const [resizing, setResizing] = useState(false);
   const location = useLocation();
   const nav = resolveModules(user);
+  // 分组导航:用户可在设置页自定义;收起侧栏时隐藏组名,仅隔开
+  const groups = useMemo(() => resolveNavGroups(user), [user]);
 
   const saveWidth = (w) => {
     setSbWidth(w);
@@ -207,16 +209,25 @@ export default function Layout({ children }) {
         >
           {collapsed ? <PanelLeftOpen className="h-4 w-4" /> : <><PanelLeftClose className="h-4 w-4" /> 收起</>}
         </button>
-        <nav className="flex flex-col gap-1">
-          {nav.map(({ title, to, icon: Icon }) => (
-            <NavLink key={to} to={to} end={to === "/"} title={title} className={navItemClass}>
-              <Icon className="h-4 w-4 shrink-0" />
-              {!collapsed ? <span className="truncate">{title}</span> : null}
-            </NavLink>
+        <nav className="flex flex-col gap-1 overflow-y-auto">
+          {groups.map((g, gi) => (
+            <div key={g.name} className={gi > 0 && !collapsed ? "mt-3" : ""}>
+              {!collapsed ? (
+                <p className={`mb-1 px-3 text-[10px] font-medium uppercase tracking-wider ${g.rest ? "text-slate-300" : "text-slate-400"}`}>{g.name}</p>
+              ) : gi > 0 ? (
+                <div className="mx-3 mb-1 border-t border-slate-200/70" />
+              ) : null}
+              {g.modules.map(({ title, to, icon: Icon }) => (
+                <NavLink key={to} to={to} end={to === "/"} title={title} className={navItemClass}>
+                  <Icon className="h-4 w-4 shrink-0" />
+                  {!collapsed ? <span className="truncate">{title}</span> : null}
+                </NavLink>
+              ))}
+            </div>
           ))}
         </nav>
 
-        <div className="mt-4 space-y-2 border-t border-slate-200/70 pt-3">
+        <div className="mt-auto space-y-2 border-t border-slate-200/70 pt-3">
           <NavLink to="/store" title="模块超市" className={navItemClass}>
             <LayoutGrid className="h-4 w-4 shrink-0" />
             {!collapsed ? <span>模块超市</span> : null}

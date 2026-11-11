@@ -19,6 +19,7 @@ import {
   MessageSquareHeart,
   AlarmClock,
   KeyRound,
+  Gift,
 } from "lucide-react";
 
 /**
@@ -47,11 +48,50 @@ export const MODULES = [
   { id: "expiry", title: "过期提醒", to: "/expiry", icon: AlarmClock, defaultOn: false, desc: "调料 / 化妆品 / 药品的到期日，临期倒计时 + 提醒" },
   { id: "accounts", title: "账号管理", to: "/accounts", icon: KeyRound, defaultOn: false, desc: "各平台账号密码集中记，一键复制 + 强度 / 重复检查" },
   { id: "trips", title: "旅行清单", to: "/trips", icon: Plane, defaultOn: false, desc: "行程计划 + 行前待办清单" },
+  { id: "wishes", title: "心愿清单", to: "/wishes", icon: Gift, defaultOn: false, desc: "想买 / 想去 / 想做，状态推进 + 预算链接" },
   { id: "recipes", title: "菜谱收藏", to: "/recipes", icon: ChefHat, defaultOn: false, desc: "收藏想做的菜，食材步骤都在" },
   { id: "feedback", title: "反馈看板", to: "/feedback", icon: MessageSquareHeart, defaultOn: false, desc: "作品集的访客留言与访问统计" },
 ];
 
 export const DEFAULT_ENABLED = MODULES.filter((m) => m.defaultOn).map((m) => m.id);
+
+// ===== 导航分组：默认分组 + 用户自定义(settings.nav_groups) =====
+// 不进分组的模块（总览在顶，模块超市/设置在底），未归组的启用模块进「未分组」
+export const UNGROUPED_IDS = ["dashboard", "feedback"];
+export const DEFAULT_GROUPS = [
+  { name: "记录沉淀", modules: ["kb", "notes", "timeline", "report"] },
+  { name: "求职", modules: ["jobs", "todos", "calendar"] },
+  { name: "生活", modules: ["expenses", "wishes", "trips", "recipes", "habits"] },
+  { name: "工具箱", modules: ["reading", "fitness", "weight", "sleep", "subs", "expiry", "accounts"] },
+];
+
+/**
+ * 解析导航分组：用户配置(settings.nav_groups)优先，缺失/无效时回落默认；
+ * 只保留当前已启用且注册过的模块；新启用的模块自动落到「未分组」
+ */
+export function resolveNavGroups(user) {
+  const enabled = resolveModules(user).filter((m) => !UNGROUPED_IDS.includes(m.id));
+  const byId = Object.fromEntries(enabled.map((m) => [m.id, m]));
+  let conf = null;
+  try {
+    const v = user?.nav_groups;
+    if (Array.isArray(v) && v.length && v.every((g) => g && typeof g.name === "string" && Array.isArray(g.modules))) conf = v;
+  } catch { /* 回落默认 */ }
+  const raw = conf || DEFAULT_GROUPS;
+  const used = new Set();
+  const groups = raw
+    .map((g) => ({
+      name: g.name,
+      modules: g.modules.filter((id) => byId[id] && !used.has(id)).map((id) => {
+        used.add(id);
+        return byId[id];
+      }),
+    }))
+    .filter((g) => g.modules.length);
+  const rest = enabled.filter((m) => !used.has(m.id));
+  if (rest.length) groups.push({ name: "未分组", modules: rest, rest: true });
+  return groups;
+}
 
 /** 根据用户配置解析出有序、已启用的模块列表 */
 export function resolveModules(user) {
