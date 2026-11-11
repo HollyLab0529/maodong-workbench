@@ -1,0 +1,25 @@
+# ===== 数据与密钥(绝不入库)=====
+data/
+*.db
+*.sqlite
+
+# 助手令牌 / 密钥
+.assistant-token
+.env
+.env.*
+
+# ===== 依赖 =====
+node_modules/
+web/node_modules/
+
+# ===== 构建产物(vite build 重新生成)=====
+public/index.html
+public/assets/
+
+# ===== 构建中间缓存 =====
+web/.vite/
+web/dist/
+
+# ===== 系统/编辑器 =====
+.DS_Store
+*.log

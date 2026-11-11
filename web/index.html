@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>猫冬手帐 · 慢慢记，暖暖存</title>
+    <meta name="description" content="小猫守着的个人手帐：知识库、日历、待办、记账与随笔记" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="icon" type="image/png" href="/icon-192.png?v=20261111" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=20261111" />
+    <meta name="theme-color" content="#9C3B36" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="猫冬手帐" />
+    <script>
+      // 主题防闪烁：在渲染前恢复上次的明暗与配色
+      try {
+        if (localStorage.getItem("wb-theme") === "dark") {
+          document.documentElement.classList.add("dark");
+        }
+        var p = localStorage.getItem("wb-palette");
+        if (p) document.documentElement.dataset.palette = p;
+        // 字体：标题 / 正文分开存；旧版单选项做一次迁移
+        var FM = { song: ["song", "hei"], hei: ["hei", "hei"], yuan: ["yuan", "yuan"], kai: ["kai", "hei"] };
+        var ft = localStorage.getItem("wb-font-title");
+        var fb = localStorage.getItem("wb-font-body");
+        var fo = localStorage.getItem("wb-font");
+        if (fo && FM[fo]) {
+          if (!ft) ft = FM[fo][0];
+          if (!fb) fb = FM[fo][1];
+        }
+        if (ft) document.documentElement.dataset.fontTitle = ft;
+        if (fb) document.documentElement.dataset.fontBody = fb;
+      } catch (e) {}
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>

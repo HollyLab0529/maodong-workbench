@@ -1,0 +1,278 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ============================================================
+   配色系统：slate（中性纸色）+ terracotta（强调色）都走 CSS 变量，
+   通过 <html data-palette="..."> 切换 5 套配色，.dark 切换明暗。
+   ============================================================ */
+
+/* 复古纸（作品集同款 · 默认） */
+:root,
+[data-palette="paper"] {
+  --s50: 239 233 224;
+  --s100: 232 225 213;
+  --s200: 213 203 188;
+  --s300: 186 175 158;
+  --s400: 154 143 126;
+  --s500: 128 117 101;
+  --s600: 107 97 84;
+  --s700: 89 81 70;
+  --s800: 76 68 58;
+  --s900: 58 52 44;
+  --s950: 43 38 34;
+  --cwhite: 252 250 244;
+  --t50: 246 235 230;
+  --t100: 240 216 210;
+  --t200: 224 179 173;
+  --t400: 192 115 108;
+  --t500: 156 59 54;
+  --t600: 134 46 42;
+  --t700: 110 36 33;
+  color-scheme: light;
+}
+
+/* 陶土橙（原暖色版） */
+[data-palette="clay"] {
+  --s50: 251 247 241;
+  --s100: 245 238 229;
+  --s200: 234 224 210;
+  --s300: 219 205 187;
+  --s400: 190 172 150;
+  --s500: 161 143 122;
+  --s600: 128 111 93;
+  --s700: 100 86 72;
+  --s800: 74 63 52;
+  --s900: 60 51 43;
+  --s950: 42 35 28;
+  --cwhite: 255 253 250;
+  --t50: 253 242 236;
+  --t100: 249 225 212;
+  --t200: 243 200 175;
+  --t400: 236 138 99;
+  --t500: 224 107 69;
+  --t600: 199 84 50;
+  --t700: 163 68 39;
+  color-scheme: light;
+}
+
+/* 橄榄绿 */
+[data-palette="forest"] {
+  --s50: 240 241 231;
+  --s100: 230 232 219;
+  --s200: 210 213 194;
+  --s300: 182 186 162;
+  --s400: 150 155 128;
+  --s500: 124 130 102;
+  --s600: 104 110 82;
+  --s700: 87 92 66;
+  --s800: 72 76 54;
+  --s900: 58 62 44;
+  --s950: 43 46 32;
+  --cwhite: 250 251 245;
+  --t50: 238 241 232;
+  --t100: 219 227 206;
+  --t200: 191 206 170;
+  --t400: 145 165 116;
+  --t500: 117 134 90;
+  --t600: 96 112 72;
+  --t700: 78 92 58;
+  color-scheme: light;
+}
+
+/* 雾蓝 */
+[data-palette="ocean"] {
+  --s50: 237 240 244;
+  --s100: 226 231 237;
+  --s200: 204 212 222;
+  --s300: 174 185 199;
+  --s400: 141 154 171;
+  --s500: 116 129 147;
+  --s600: 96 108 125;
+  --s700: 80 90 105;
+  --s800: 66 74 87;
+  --s900: 53 60 70;
+  --s950: 39 44 51;
+  --cwhite: 250 251 253;
+  --t50: 233 239 244;
+  --t100: 212 224 233;
+  --t200: 180 200 215;
+  --t400: 118 148 173;
+  --t500: 82 112 143;
+  --t600: 68 93 120;
+  --t700: 55 76 99;
+  color-scheme: light;
+}
+
+/* 豆沙粉 */
+[data-palette="plum"] {
+  --s50: 245 239 241;
+  --s100: 236 227 230;
+  --s200: 218 204 209;
+  --s300: 193 177 184;
+  --s400: 163 146 154;
+  --s500: 137 120 129;
+  --s600: 115 99 108;
+  --s700: 96 82 90;
+  --s800: 80 67 74;
+  --s900: 65 54 60;
+  --s950: 47 39 43;
+  --cwhite: 253 250 251;
+  --t50: 245 233 236;
+  --t100: 234 211 217;
+  --t200: 212 178 188;
+  --t400: 187 122 140;
+  --t500: 160 90 110;
+  --t600: 135 72 92;
+  --t700: 111 58 76;
+  color-scheme: light;
+}
+
+/* 暗色：统一暖棕黑纸底（强调色保持各配色不变） */
+.dark {
+  --s50: 43 38 33;
+  --s100: 53 47 41;
+  --s200: 66 59 52;
+  --s300: 88 79 70;
+  --s400: 128 116 104;
+  --s500: 158 144 130;
+  --s600: 187 173 158;
+  --s700: 213 201 186;
+  --s800: 233 224 211;
+  --s900: 244 238 229;
+  --s950: 251 247 241;
+  --cwhite: 32 28 24;
+  color-scheme: dark;
+}
+
+/* ============================================================
+   字体系统：4 套系统字体栈，标题 / 正文可各自独立选择。
+   <html data-font-title="song|hei|yuan|kai" data-font-body="hei|song|yuan|kai">
+   全部走系统字体，零下载、秒生效、国内外都快。
+   ============================================================ */
+:root {
+  --stack-hei: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", "PingFang SC",
+    "HarmonyOS Sans SC", "MiSans", "Hiragino Sans GB", "Source Han Sans SC", "Noto Sans SC",
+    "Microsoft YaHei", "WenQuanYi Micro Hei", sans-serif;
+  --stack-song: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, "Songti SC",
+    "Noto Serif SC", "Source Han Serif SC", STSong, SimSun, serif;
+  --stack-yuan: ui-rounded, "SF Pro Rounded", "Yuanti SC", "Hiragino Maru Gothic ProN",
+    "PingFang SC", "Microsoft YaHei UI", "Microsoft YaHei", sans-serif;
+  --stack-kai: "Kaiti SC", STKaiti, KaiTi, "Songti SC", "Noto Serif SC", serif;
+
+  /* 默认：宋体标题 + 黑体正文 */
+  --font-sans: var(--stack-hei);
+  --font-display: var(--stack-song);
+  --tracking-body: 0.008em;
+  --tracking-display: 0.02em;
+}
+
+/* 正文字体（影响全站正文、表单、列表、卡片说明文字） */
+[data-font-body="hei"] {
+  --font-sans: var(--stack-hei);
+  --tracking-body: 0.008em;
+}
+[data-font-body="song"] {
+  --font-sans: var(--stack-song);
+  --tracking-body: 0.02em;
+}
+[data-font-body="yuan"] {
+  --font-sans: var(--stack-yuan);
+  --tracking-body: 0.01em;
+}
+[data-font-body="kai"] {
+  --font-sans: var(--stack-kai);
+  --tracking-body: 0.03em;
+}
+
+/* 标题字体（h1~h3、页面大标题、Markdown 标题） */
+[data-font-title="song"] {
+  --font-display: var(--stack-song);
+  --tracking-display: 0.02em;
+}
+[data-font-title="hei"] {
+  --font-display: var(--stack-hei);
+  --tracking-display: -0.005em;
+}
+[data-font-title="yuan"] {
+  --font-display: var(--stack-yuan);
+  --tracking-display: 0.01em;
+}
+[data-font-title="kai"] {
+  --font-display: var(--stack-kai);
+  --tracking-display: 0.03em;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  @apply bg-slate-50 text-slate-900 antialiased;
+  font-family: var(--font-sans);
+  letter-spacing: var(--tracking-body);
+  font-feature-settings: "tnum";
+}
+
+/* 标题统一走展示字体（宋体/楷体/圆体随设置变） */
+h1,
+h2,
+h3 {
+  font-family: var(--font-display);
+  letter-spacing: var(--tracking-display);
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(var(--s300)) transparent;
+}
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-thumb { @apply bg-slate-300 rounded-full; }
+::-webkit-scrollbar-track { background: transparent; }
+
+::selection { @apply bg-terracotta-200; }
+
+/* 简易 Markdown 排版 */
+.md-body { font-family: var(--font-sans); }
+.md-body h1, .md-body h2, .md-body h3 { font-family: var(--font-display); }
+.md-body h1 { @apply mt-5 mb-2.5 text-[19px] font-bold text-slate-900; }
+/* h2：左侧色条 + 分隔线，长文里的板块锚点 */
+.md-body h2 {
+  @apply mt-6 mb-2.5 text-[17px] font-bold text-slate-900;
+  padding-left: 0.6rem;
+  border-left: 3px solid rgb(var(--t400));
+  line-height: 1.5;
+}
+.md-body h2:first-child, .md-body h1:first-child { @apply mt-0; }
+.md-body h3 {
+  @apply mt-4 mb-1.5 text-[15px] font-semibold;
+  color: rgb(var(--t600));
+}
+.md-body p { @apply my-2 leading-relaxed text-slate-700; }
+.md-body strong { @apply font-semibold text-slate-900; }
+.md-body ul { @apply my-2 list-disc pl-5 space-y-1; }
+.md-body ol { @apply my-2 list-decimal pl-5 space-y-1; }
+.md-body li { @apply leading-relaxed; }
+.md-body ul li::marker { color: rgb(var(--t400)); }
+.md-body ol li::marker { color: rgb(var(--t400)); font-weight: 600; }
+.md-body blockquote {
+  @apply my-3 rounded-r-lg border-l-[3px] border-terracotta-400/60 bg-terracotta-50/40 py-1 pl-3 text-slate-600;
+}
+.md-body code { @apply rounded bg-slate-100 px-1.5 py-0.5 font-mono text-[13px] text-terracotta-700; }
+.md-body pre { @apply my-2 overflow-x-auto rounded-lg bg-slate-100 p-3 text-[13px]; }
+.md-body pre code { @apply bg-transparent p-0 text-slate-700; }
+.md-body hr { @apply my-4 border-slate-200; }
+.md-body a { @apply text-terracotta-600 underline-offset-2 hover:underline; }
+
+/* 番茄进度条过渡 */
+.transition-progress { transition: width .4s ease; }
+
+/* 页面切换：轻微上浮淡入（尊重减少动态偏好） */
+@keyframes page-enter {
+  from { opacity: 0; transform: translateY(5px); }
+  to { opacity: 1; transform: none; }
+}
+.page-enter { animation: page-enter .22s ease-out both; }
+@media (prefers-reduced-motion: reduce) {
+  .page-enter { animation: none; }
+}
