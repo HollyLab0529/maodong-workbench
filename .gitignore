@@ -27,3 +27,4 @@ web/dist/
 scripts/sync_resumes.py
 deploy/deploy.local.sh
 deploy/workbench.service
+scripts/sync_portfolio_note.py
