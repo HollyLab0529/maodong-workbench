@@ -71,7 +71,11 @@ export default function Wishes() {
       setModalOpen(false);
       toast.success(editing ? "已更新" : "心愿已记下,早日拿下!");
     } catch (e) {
-      toast.error("保存失败:" + e.message);
+      if (String(e.message).includes("记录不存在")) {
+        toast.error("这条心愿在服务器上已不在了（可能是页面数据过期），列表已刷新，请重新打开编辑");
+      } else {
+        toast.error("保存失败:" + e.message);
+      }
       load();
     } finally {
       setSaving(false);
@@ -81,13 +85,13 @@ export default function Wishes() {
   const remove = async (r) => {
     if (!window.confirm(`删除心愿「${r.name}」?`)) return;
     setRows((l) => l.filter((x) => x.id !== r.id));
-    try { await deleteRow("wishes", r.id); } catch (e) { toast.error("删除失败:" + e.message); load(); }
+    try { await deleteRow("wishes", r.id); } catch (e) { toast.error(String(e.message).includes("记录不存在") ? "这条已被删除,列表已刷新" : "删除失败:" + e.message); load(); }
   };
 
   const quickDone = async (r) => {
     const next = { status: "已拿下" };
     setRows((l) => l.map((x) => (x.id === r.id ? { ...x, ...next } : x)));
-    try { await updateRow("wishes", r.id, next); toast.success("恭喜,拿下了!🎉"); } catch (e) { toast.error("更新失败:" + e.message); load(); }
+    try { await updateRow("wishes", r.id, next); toast.success("恭喜,拿下了!🎉"); } catch (e) { toast.error(String(e.message).includes("记录不存在") ? "这条心愿在服务器上已不在了,列表已刷新" : "更新失败:" + e.message); load(); }
   };
 
   return (
