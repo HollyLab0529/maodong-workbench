@@ -83,8 +83,48 @@ export default function Layout({ children }) {
       return false;
     }
   });
+  // 桌面侧栏宽度：可拖动调整，记住选择
+  const [sbWidth, setSbWidth] = useState(() => {
+    try {
+      const v = Number(localStorage.getItem("wb-sidebar-w"));
+      return v >= 168 && v <= 360 ? v : 224;
+    } catch {
+      return 224;
+    }
+  });
+  const [resizing, setResizing] = useState(false);
   const location = useLocation();
   const nav = resolveModules(user);
+
+  const saveWidth = (w) => {
+    setSbWidth(w);
+    try {
+      localStorage.setItem("wb-sidebar-w", String(w));
+    } catch {
+      /* ignore */
+    }
+  };
+
+  // 拖右侧边缘调宽窄（168~360px），双击手柄恢复默认 224
+  const startResize = (e) => {
+    e.preventDefault();
+    const startX = e.clientX;
+    const startW = sbWidth;
+    setResizing(true);
+    document.body.style.userSelect = "none";
+    document.body.style.cursor = "col-resize";
+    const move = (ev) => setSbWidth(Math.min(360, Math.max(168, startW + ev.clientX - startX)));
+    const up = (ev) => {
+      setResizing(false);
+      document.body.style.userSelect = "";
+      document.body.style.cursor = "";
+      window.removeEventListener("mousemove", move);
+      window.removeEventListener("mouseup", up);
+      saveWidth(Math.min(360, Math.max(168, startW + ev.clientX - startX)));
+    };
+    window.addEventListener("mousemove", move);
+    window.addEventListener("mouseup", up);
+  };
 
   const toggleSidebar = () => {
     setCollapsed((c) => {
@@ -134,10 +174,21 @@ export default function Layout({ children }) {
 
       {/* 桌面侧栏：可折叠成图标条 */}
       <aside
-        className={`sticky top-0 hidden h-screen shrink-0 flex-col border-r border-slate-200/70 bg-white/70 py-6 backdrop-blur transition-[width] duration-200 md:flex ${
-          collapsed ? "w-[68px] px-2.5" : "w-56 px-4"
-        }`}
+        style={collapsed ? undefined : { width: sbWidth }}
+        className={`sticky top-0 hidden h-screen shrink-0 flex-col border-r border-slate-200/70 bg-white/70 py-6 backdrop-blur md:flex ${
+          collapsed ? "w-[68px] px-2.5" : "px-4"
+        } ${resizing ? "" : "transition-[width] duration-200"}`}
       >
+        {collapsed ? null : (
+          <div
+            onMouseDown={startResize}
+            onDoubleClick={() => saveWidth(224)}
+            title="拖动可调整侧栏宽度，双击恢复默认"
+            className={`absolute inset-y-0 right-0 z-10 w-1.5 cursor-col-resize transition-colors ${
+              resizing ? "bg-terracotta/40" : "hover:bg-terracotta/25"
+            }`}
+          />
+        )}
         <div className={`mb-3 flex items-center ${collapsed ? "justify-center" : "gap-2.5 px-2"}`}>
           <CatLogo size={collapsed ? 34 : 38} />
           {!collapsed ? (
