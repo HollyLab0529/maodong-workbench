@@ -113,7 +113,7 @@ export default function Store() {
     <Layout>
       <PageHeader
         title="模块超市"
-        subtitle="按需搭配你的手帐：获取想要的，移除不需要的，顺序随你摆"
+        subtitle="按需搭配你的手帐：获取想要的，移除不需要的；这里从上到下的顺序就是侧栏的顺序"
         action={saving ? <span className="text-xs text-slate-400">保存中…</span> : null}
       />
 
@@ -141,7 +141,7 @@ export default function Store() {
         <div>
           <h2 className="mb-2 flex items-center gap-1.5 text-sm font-semibold text-slate-900">
             <Pin className="h-4 w-4 text-terracotta" /> 已装模块
-            <span className="text-xs font-normal text-slate-400">拖动或用箭头排序</span>
+            <span className="text-xs font-normal text-slate-400">序号＝侧栏位置（总览固定第一）；拖动或用箭头换位置，同一分组内也会按这个顺序排</span>
           </h2>
           <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
             {installed.map((m, idx) => (
@@ -151,10 +151,11 @@ export default function Store() {
                 onDragStart={() => (dragId.current = m.id)}
                 onDragOver={(e) => e.preventDefault()}
                 onDrop={() => onDrop(idx)}
-                className={`flex items-center gap-3 rounded-xl border border-slate-200/70 bg-white/80 p-3 ${
+                className={`flex items-center gap-2 rounded-xl border border-slate-200/70 bg-white/80 p-3 ${
                   m.core ? "opacity-90" : "cursor-grab active:cursor-grabbing"
                 }`}
               >
+                <span className="w-4 shrink-0 text-center text-[11px] font-mono text-slate-300">{idx + 1}</span>
                 {!m.core ? (
                   <GripVertical className="h-4 w-4 shrink-0 text-slate-300" />
                 ) : (
@@ -174,7 +175,7 @@ export default function Store() {
                       <select
                         value={groupIdxOf(m.id)}
                         onChange={(e) => setModuleGroup(m.id, e.target.value)}
-                        title="所属分组（侧栏里的归类）"
+                        title="所属分组（侧栏里的归类，顺序仍由上面的序号决定）"
                         className="shrink-0 cursor-pointer rounded-md border border-slate-200 bg-white px-1.5 py-0.5 text-[11px] text-slate-500 transition-colors hover:border-terracotta-300"
                       >
                         <option value={-1}>未分组</option>
@@ -190,10 +191,10 @@ export default function Store() {
                 <div className="flex shrink-0 items-center gap-0.5">
                   {!m.core ? (
                     <>
-                      <button onClick={() => move(idx, -1)} disabled={idx <= 1} className="rounded p-1 text-slate-300 transition-colors hover:text-terracotta-600 disabled:opacity-30">
+                      <button onClick={() => move(idx, -1)} disabled={idx <= 1} title="上移一位" className="rounded p-1 text-slate-300 transition-colors hover:text-terracotta-600 disabled:opacity-30">
                         <ArrowUp className="h-3.5 w-3.5" />
                       </button>
-                      <button onClick={() => move(idx, 1)} disabled={idx >= installed.length - 1} className="rounded p-1 text-slate-300 transition-colors hover:text-terracotta-600 disabled:opacity-30">
+                      <button onClick={() => move(idx, 1)} disabled={idx >= installed.length - 1} title="下移一位" className="rounded p-1 text-slate-300 transition-colors hover:text-terracotta-600 disabled:opacity-30">
                         <ArrowDown className="h-3.5 w-3.5" />
                       </button>
                       <button onClick={() => remove(m)} title="移除" className="rounded p-1 text-slate-300 transition-colors hover:text-red-500">
@@ -252,7 +253,7 @@ export default function Store() {
               </div>
             </div>
             <p className="text-[11px] leading-relaxed text-slate-400">
-              分组只影响侧栏的归类展示；总览、模块超市、设置不参与分组。改完组名/顺序后记得点「保存分组」，模块下拉换组则即时生效。
+              侧栏规则：分区（分组）的先后由这里的上下箭头决定，分区里模块的先后由「已装模块」的序号决定；总览、模块超市、设置不参与分组。改组名/顺序后点「保存分组」，模块下拉换组即时生效。
             </p>
           </div>
         </div>

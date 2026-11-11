@@ -89,6 +89,9 @@ export function resolveNavGroups(user) {
       }),
     }))
     .filter((g) => g.modules.length);
+  // 组内顺序跟全局模块顺序（模块超市里排的序），超市怎么排侧栏就怎么排
+  const rank = new Map(enabled.map((m, i) => [m.id, i]));
+  for (const g of groups) g.modules.sort((a, b) => (rank.get(a.id) ?? 0) - (rank.get(b.id) ?? 0));
   const rest = enabled.filter((m) => !used.has(m.id));
   if (rest.length) groups.push({ name: "未分组", modules: rest, rest: true });
   return groups;
