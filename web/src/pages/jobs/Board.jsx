@@ -4,19 +4,11 @@ import { listRows, insertRow, updateRow, deleteRow } from "../../api";
 import { useLiveReload } from "../../live";
 import { Button, Input, Textarea, Label, Modal, EmptyState, Loading, toast } from "../../components/ui";
 import { Plus, Trash2, Loader2, Pencil, History, Building2 } from "lucide-react";
+import { JOB_STATUSES, jobStatusStyle } from "../../colors";
 
-export const STATUSES = ["投递中", "笔试", "一面", "二面", "三面", "HR面", "Offer", "结束"];
-export const STATUS_STYLE = {
-  投递中: "bg-blue-50 text-blue-600",
-  笔试: "bg-purple-50 text-purple-600",
-  一面: "bg-amber-50 text-amber-600",
-  二面: "bg-amber-50 text-amber-600",
-  三面: "bg-amber-50 text-amber-600",
-  HR面: "bg-orange-50 text-orange-600",
-  Offer: "bg-green-50 text-green-600",
-  结束: "bg-slate-100 text-slate-400",
-};
-const EMPTY = { company: "", position: "", status: "投递中", note: "" };
+export const STATUSES = JOB_STATUSES;
+export const STATUS_STYLE = Object.fromEntries(JOB_STATUSES.map((s) => [s, jobStatusStyle(s)]));
+const EMPTY = { company: "", position: "", status: "待投递", note: "" };
 
 export default function Board() {
   const [apps, setApps] = useState([]);
@@ -43,7 +35,7 @@ export default function Board() {
 
   const openNew = () => { setForm(EMPTY); setEditingId(null); setFormOpen(true); };
   const openEdit = (a) => {
-    setForm({ company: a.company || "", position: a.position || "", status: a.status || "投递中", note: a.note || "" });
+    setForm({ company: a.company || "", position: a.position || "", status: a.status || "待投递", note: a.note || "" });
     setEditingId(a.id);
     setFormOpen(true);
   };
@@ -149,7 +141,7 @@ export default function Board() {
                   <h3 className="font-medium text-slate-900">{a.company}</h3>
                   <p className="text-xs text-slate-400">{a.position || "岗位未填"}</p>
                 </div>
-                <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs ${STATUS_STYLE[a.status] || "bg-slate-100 text-slate-500"}`}>
+                <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs ${jobStatusStyle(a.status)}`}>
                   {a.status}
                 </span>
               </div>
@@ -159,8 +151,11 @@ export default function Board() {
                   <button
                     key={s}
                     onClick={() => changeStatus(a, s)}
+                    title={a.status === s ? "当前状态" : `改为「${s}」`}
                     className={`rounded px-1.5 py-0.5 text-[11px] transition-colors ${
-                      a.status === s ? "bg-terracotta text-white" : "text-slate-400 hover:bg-slate-100"
+                      a.status === s
+                        ? "font-medium " + jobStatusStyle(s)
+                        : "text-slate-400 hover:bg-slate-100"
                     }`}
                   >
                     {s}
@@ -191,8 +186,10 @@ export default function Board() {
                 <button
                   key={s}
                   onClick={() => setForm({ ...form, status: s })}
-                  className={`rounded-full px-3 py-1 text-xs ${
-                    form.status === s ? "bg-terracotta text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                  className={`rounded-full px-3 py-1 text-xs transition-colors ${
+                    form.status === s
+                      ? "font-medium ring-1 ring-terracotta " + jobStatusStyle(s)
+                      : "bg-slate-100 text-slate-600 hover:bg-slate-200"
                   }`}
                 >
                   {s}
