@@ -9,6 +9,13 @@ const TYPES = ["想买", "想去", "想做"];
 const STATUSES = ["心痒", "攒钱中", "已拿下", "放弃"];
 const STATUS_TONE = { 心痒: "teal", 攒钱中: "amber", 已拿下: "green", 放弃: "slate" };
 const TYPE_TONE = { 想买: "blue", 想去: "rose", 想做: "violet" };
+// 四象限样式（对齐 Todos 的排布）：每格一个状态，心愿直接列在格内
+const QUAD_META = {
+  心痒: { tip: "种草中,先放着", cls: "border-teal-200 bg-teal-50/40", head: "text-teal-700" },
+  攒钱中: { tip: "努力攒", cls: "border-amber-200 bg-amber-50/40", head: "text-amber-700" },
+  已拿下: { tip: "喜加一 🎉", cls: "border-green-200 bg-green-50/40", head: "text-green-700" },
+  放弃: { tip: "释怀", cls: "border-slate-200 bg-slate-50/60", head: "text-slate-500" },
+};
 const EMPTY = { name: "", type: "想买", target: "", link: "", status: "心痒", note: "" };
 
 const chip = "shrink-0 rounded-full px-2.5 py-1 text-xs";
@@ -40,7 +47,6 @@ export default function Wishes() {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filterType, setFilterType] = useState("全部");
-  const [filterStatus, setFilterStatus] = useState("全部");
   const [modalOpen, setModalOpen] = useState(false);
   const [form, setForm] = useState(EMPTY);
   const [editing, setEditing] = useState(null);
@@ -57,22 +63,15 @@ export default function Wishes() {
   };
   useEffect(() => { load(); }, []);
 
-  const filtered = useMemo(
-    () =>
-      rows
-        .filter((r) => (filterType === "全部" ? true : r.type === filterType))
-        .filter((r) => (filterStatus === "全部" ? true : r.status === filterStatus))
-        .sort((a, b) => (a.status === "已拿下" ? 1 : 0) - (b.status === "已拿下" ? 1 : 0) || String(b.created_at || "").localeCompare(String(a.created_at || ""))),
-    [rows, filterType, filterStatus]
-  );
-
-  // 状态宫格：各状态的条数与金额小计（随类型筛选联动）
-  const statusStats = useMemo(
+  // 四象限：每格一个状态，列出该状态下（随类型筛选）的心愿
+  const quadrants = useMemo(
     () =>
       STATUSES.map((s) => {
-        const list = rows.filter((r) => r.status === s && (filterType === "全部" || r.type === filterType));
-        const sum = list.reduce((t, r) => t + moneyOf(r.target), 0);
-        return { s, n: list.length, sum };
+        const items = rows
+          .filter((r) => r.status === s && (filterType === "全部" || r.type === filterType))
+          .sort((a, b) => String(b.created_at || "").localeCompare(String(a.created_at || "")));
+        const sum = items.reduce((t, r) => t + moneyOf(r.target), 0);
+        return { s, items, sum, ...QUAD_META[s] };
       }),
     [rows, filterType]
   );
@@ -157,59 +156,56 @@ export default function Wishes() {
         <Button size="sm" className="ml-auto" onClick={openNew}><Plus className="h-4 w-4" /> 记个心愿</Button>
       </div>
 
-      {/* 状态宫格:点一下只看该状态,再点一下回到全部 */}
-      <div className="mb-4 grid grid-cols-2 gap-2 md:grid-cols-4">
-        {statusStats.map(({ s, n, sum }) => {
-          const active = filterStatus === s;
-          return (
-            <button key={s}
-              onClick={() => setFilterStatus(active ? "全部" : s)}
-              className={`rounded-xl border p-3 text-left transition ${toneChip(STATUS_TONE[s])} ${
-                active ? "border-terracotta-400 ring-1 ring-terracotta" : "border-slate-200/70 hover:border-slate-300"
-              }`}>
-              <p className="text-xs opacity-80">{s}{active ? " · 显示中" : ""}</p>
-              <p className="mt-0.5 text-lg font-semibold">{n} <span className="text-xs font-normal opacity-80">个</span></p>
-              {sum > 0 ? <p className="text-[11px] opacity-80">约 ¥{sum % 1 ? sum.toFixed(2) : sum}</p> : null}
-            </button>
-          );
-        })}
-      </div>
-
       {loading ? (
         <div className="flex justify-center py-16 text-slate-400"><Loader2 className="h-6 w-6 animate-spin" /></div>
-      ) : filtered.length === 0 ? (
+      ) : rows.length === 0 ? (
         <div className="rounded-xl border border-dashed border-slate-200 py-16 text-center text-sm text-slate-400">
           <Gift className="mx-auto mb-2 h-8 w-8 text-slate-300" />
           还没有心愿,点右上角「记个心愿」开始攒
         </div>
       ) : (
-        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-          {filtered.map((r) => (
-            <div key={r.id} className={`group rounded-xl border bg-white/80 p-4 shadow-sm transition-shadow hover:shadow-md ${r.status === "已拿下" ? "border-green-200" : r.status === "放弃" ? "border-slate-200 opacity-70" : "border-slate-200/70"}`}>
-              <div className="mb-2 flex items-start gap-2">
-                <h3 className={`flex-1 text-sm font-semibold text-slate-900 ${r.status === "已拿下" ? "" : ""}`}>{r.name}</h3>
-                <span className={`${chip} ${toneChip(TYPE_TONE[r.type] || "slate")}`}>{r.type}</span>
-                <span className={`${chip} ${toneChip(STATUS_TONE[r.status] || "slate")}`}>{r.status}</span>
-              </div>
-              {r.target ? <p className="mb-2 text-xs text-slate-500">🎯 {r.target}{r.status !== "已拿下" && moneyOf(r.target) > 0 ? <span className="text-slate-400">（拿下后自动记入记账）</span> : null}</p> : null}
-              {r.note ? <p className="mb-2 whitespace-pre-line text-xs text-slate-500">{r.note}</p> : null}
-              <div className="mt-3 flex items-center gap-1.5">
-                {r.link ? (
-                  <a href={r.link} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs text-terracotta-600 hover:underline">
-                    <Link2 className="h-3 w-3" /> 链接
-                  </a>
-                ) : null}
-                <div className="ml-auto flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
-                  {r.status !== "已拿下" && r.status !== "放弃" ? (
-                    <button onClick={() => quickDone(r)} title="标记已拿下" className="rounded p-1.5 text-slate-400 hover:bg-green-50 hover:text-green-600"><Check className="h-4 w-4" /></button>
-                  ) : null}
-                  <button onClick={() => openEdit(r)} title="编辑" className="rounded p-1.5 text-slate-400 hover:bg-slate-100 hover:text-terracotta-600"><Pencil className="h-4 w-4" /></button>
-                  <button onClick={() => remove(r)} title="删除" className="rounded p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-500"><Trash2 className="h-4 w-4" /></button>
-                </div>
-              </div>
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+        {quadrants.map((q) => (
+          <div key={q.s} className={`rounded-xl border p-3.5 ${q.cls}`}>
+            <div className="mb-2.5 flex items-center justify-between">
+              <h2 className={`text-xs font-semibold ${q.head}`}>{q.s}</h2>
+              <span className="text-[11px] text-slate-400">
+                {q.tip} · {q.items.length}{q.sum > 0 ? ` · 约 ¥${q.sum % 1 ? q.sum.toFixed(2) : q.sum}` : ""}
+              </span>
             </div>
-          ))}
-        </div>
+            <div className="space-y-1.5">
+              {q.items.length === 0 ? <p className="py-2 text-center text-[11px] text-slate-300">这一格空着,很清净</p> : null}
+              {q.items.map((r) => (
+                <div key={r.id} className="group flex items-center gap-2 rounded-lg bg-white/80 px-2.5 py-2 ring-1 ring-slate-200/70">
+                  <div className="min-w-0 flex-1">
+                    <p className="flex items-center gap-1.5 text-sm font-medium text-slate-800">
+                      <span className="truncate">{r.name}</span>
+                      <span className={`shrink-0 rounded-full px-1.5 py-0.5 text-[10px] ${toneChip(TYPE_TONE[r.type] || "slate")}`}>{r.type}</span>
+                    </p>
+                    {r.target || r.note ? (
+                      <p className="truncate text-[11px] text-slate-400">
+                        {r.target ? <>🎯 {r.target}{r.status !== "已拿下" && moneyOf(r.target) > 0 ? <span className="text-slate-300">（拿下自动记账）</span> : null}</> : null}
+                        {r.target && r.note ? " · " : ""}
+                        {r.note}
+                      </p>
+                    ) : null}
+                  </div>
+                  <div className="flex shrink-0 items-center gap-0.5">
+                    {r.link ? (
+                      <a href={r.link} target="_blank" rel="noreferrer" title="打开链接" className="rounded p-1.5 text-slate-300 hover:text-terracotta-600"><Link2 className="h-3.5 w-3.5" /></a>
+                    ) : null}
+                    {r.status !== "已拿下" && r.status !== "放弃" ? (
+                      <button onClick={() => quickDone(r)} title="标记已拿下" className="rounded p-1.5 text-slate-300 hover:bg-green-50 hover:text-green-600"><Check className="h-3.5 w-3.5" /></button>
+                    ) : null}
+                    <button onClick={() => openEdit(r)} title="编辑" className="rounded p-1.5 text-slate-300 hover:bg-slate-100 hover:text-terracotta-600"><Pencil className="h-3.5 w-3.5" /></button>
+                    <button onClick={() => remove(r)} title="删除" className="rounded p-1.5 text-slate-300 hover:bg-red-50 hover:text-red-500"><Trash2 className="h-3.5 w-3.5" /></button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
       )}
 
       <Modal open={modalOpen} onClose={() => setModalOpen(false)} title={editing ? "编辑心愿" : "记个心愿"}>
