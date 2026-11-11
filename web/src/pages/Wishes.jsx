@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Gift, Plus, Trash2, Pencil, Link2, Check, Loader2 } from "lucide-react";
-import { listRows, insertRow, updateRow, deleteRow } from "../api";
+import { listRows, insertRow, updateRow, deleteRow, todayStr } from "../api";
 import { Button, Input, Label, Modal, toast } from "../components/ui";
 import { toneChip } from "../colors";
 import Layout, { PageHeader } from "../components/Layout";
@@ -12,6 +12,29 @@ const TYPE_TONE = { 想买: "blue", 想去: "rose", 想做: "violet" };
 const EMPTY = { name: "", type: "想买", target: "", link: "", status: "心痒", note: "" };
 
 const chip = "shrink-0 rounded-full px-2.5 py-1 text-xs";
+
+// 预算是否是纯金额（如 15.12 / ¥2000）；「7 天行程」这类非金额目标不记账
+const moneyOf = (target) => {
+  const m = String(target || "").replace(/^\s*[¥￥]?\s*/, "").trim();
+  return /^\d+(\.\d+)?$/.test(m) ? parseFloat(m) : 0;
+};
+
+// 标记「已拿下」时自动记一笔支出到记账
+const recordDoneExpense = async (r) => {
+  const amt = moneyOf(r.target);
+  if (!amt || amt <= 0) return null;
+  try {
+    await insertRow("expenses", {
+      amount: String(amt),
+      category: "心愿达成",
+      note: `心愿拿下:${r.name}${r.link ? "（" + r.link + "）" : ""}`,
+      spent_at: todayStr(),
+    });
+    return amt;
+  } catch {
+    return null;
+  }
+};
 
 export default function Wishes() {
   const [rows, setRows] = useState([]);
@@ -43,6 +66,17 @@ export default function Wishes() {
     [rows, filterType, filterStatus]
   );
 
+  // 状态宫格：各状态的条数与金额小计（随类型筛选联动）
+  const statusStats = useMemo(
+    () =>
+      STATUSES.map((s) => {
+        const list = rows.filter((r) => r.status === s && (filterType === "全部" || r.type === filterType));
+        const sum = list.reduce((t, r) => t + moneyOf(r.target), 0);
+        return { s, n: list.length, sum };
+      }),
+    [rows, filterType]
+  );
+
   const openNew = () => { setEditing(null); setForm(EMPTY); setModalOpen(true); };
   const openEdit = (r) => {
     setEditing(r);
@@ -69,7 +103,18 @@ export default function Wishes() {
         setRows((l) => [row || { ...payload, id: Math.random() }, ...l]);
       }
       setModalOpen(false);
-      toast.success(editing ? "已更新" : "心愿已记下,早日拿下!");
+      // 变为「已拿下」时自动记一笔支出（原本就是已拿下再保存则不重复记）
+      const becameDone = payload.status === "已拿下" && !(editing && editing.status === "已拿下");
+      const recorded = becameDone ? await recordDoneExpense({ name: payload.name, target: payload.target, link: payload.link }) : null;
+      toast.success(
+        editing
+          ? recorded
+            ? `已更新,并自动记了笔支出 ¥${recorded} 🎉`
+            : "已更新"
+          : recorded
+            ? `心愿已记下,并自动记了笔支出 ¥${recorded} 🎉`
+            : "心愿已记下,早日拿下!"
+      );
     } catch (e) {
       if (String(e.message).includes("记录不存在")) {
         toast.error("这条心愿在服务器上已不在了（可能是页面数据过期），列表已刷新，请重新打开编辑");
@@ -91,28 +136,43 @@ export default function Wishes() {
   const quickDone = async (r) => {
     const next = { status: "已拿下" };
     setRows((l) => l.map((x) => (x.id === r.id ? { ...x, ...next } : x)));
-    try { await updateRow("wishes", r.id, next); toast.success("恭喜,拿下了!🎉"); } catch (e) { toast.error(String(e.message).includes("记录不存在") ? "这条心愿在服务器上已不在了,列表已刷新" : "更新失败:" + e.message); load(); }
+    try {
+      await updateRow("wishes", r.id, next);
+      const recorded = await recordDoneExpense(r);
+      toast.success(recorded ? `恭喜,拿下了!已自动记一笔支出 ¥${recorded} 🎉` : "恭喜,拿下了!🎉");
+    } catch (e) { toast.error(String(e.message).includes("记录不存在") ? "这条心愿在服务器上已不在了,列表已刷新" : "更新失败:" + e.message); load(); }
   };
 
   return (
     <Layout>
-      <PageHeader title="心愿清单" subtitle="想买的、想去的、想做的——记下来,一个个拿下" />
+      <PageHeader title="心愿清单" subtitle="想买的、想去的、想做的——记下来,一个个拿下;标记「已拿下」会自动记一笔支出" />
 
-      <div className="mb-4 flex flex-wrap items-center gap-1.5">
+      <div className="mb-3 flex flex-wrap items-center gap-1.5">
         {["全部", ...TYPES].map((t) => (
           <button key={t} onClick={() => setFilterType(t)}
             className={`${chip} ${filterType === t ? "bg-terracotta text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}>
             {t}
           </button>
         ))}
-        <span className="mx-1 h-4 w-px bg-slate-200" />
-        {["全部", ...STATUSES].map((s) => (
-          <button key={s} onClick={() => setFilterStatus(s)}
-            className={`${chip} ${filterStatus === s ? "bg-slate-900 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}>
-            {s}
-          </button>
-        ))}
         <Button size="sm" className="ml-auto" onClick={openNew}><Plus className="h-4 w-4" /> 记个心愿</Button>
+      </div>
+
+      {/* 状态宫格:点一下只看该状态,再点一下回到全部 */}
+      <div className="mb-4 grid grid-cols-2 gap-2 md:grid-cols-4">
+        {statusStats.map(({ s, n, sum }) => {
+          const active = filterStatus === s;
+          return (
+            <button key={s}
+              onClick={() => setFilterStatus(active ? "全部" : s)}
+              className={`rounded-xl border p-3 text-left transition ${toneChip(STATUS_TONE[s])} ${
+                active ? "border-terracotta-400 ring-1 ring-terracotta" : "border-slate-200/70 hover:border-slate-300"
+              }`}>
+              <p className="text-xs opacity-80">{s}{active ? " · 显示中" : ""}</p>
+              <p className="mt-0.5 text-lg font-semibold">{n} <span className="text-xs font-normal opacity-80">个</span></p>
+              {sum > 0 ? <p className="text-[11px] opacity-80">约 ¥{sum % 1 ? sum.toFixed(2) : sum}</p> : null}
+            </button>
+          );
+        })}
       </div>
 
       {loading ? (
@@ -131,7 +191,7 @@ export default function Wishes() {
                 <span className={`${chip} ${toneChip(TYPE_TONE[r.type] || "slate")}`}>{r.type}</span>
                 <span className={`${chip} ${toneChip(STATUS_TONE[r.status] || "slate")}`}>{r.status}</span>
               </div>
-              {r.target ? <p className="mb-2 text-xs text-slate-500">🎯 {r.target}</p> : null}
+              {r.target ? <p className="mb-2 text-xs text-slate-500">🎯 {r.target}{r.status !== "已拿下" && moneyOf(r.target) > 0 ? <span className="text-slate-400">（拿下后自动记入记账）</span> : null}</p> : null}
               {r.note ? <p className="mb-2 whitespace-pre-line text-xs text-slate-500">{r.note}</p> : null}
               <div className="mt-3 flex items-center gap-1.5">
                 {r.link ? (
