@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { listRows } from "./api";
 
-export const JOB_STATUSES = ["待投递", "投递中", "笔试", "一面", "二面", "三面", "HR面", "Offer", "结束"];
+export const JOB_STATUSES = ["待投递", "简历筛选", "投递中", "笔试", "一面", "二面", "三面", "HR面", "Offer", "结束"];
 
 // 色板注册表:tone 名 → 芯片样式。自定义状态/标签配色都从这里取
 export const TONES = {

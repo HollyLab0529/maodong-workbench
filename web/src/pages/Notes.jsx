@@ -251,14 +251,14 @@ export default function Notes() {
                 <div className="mb-2 space-y-1">
                   {def.fields.map((fd) =>
                     f[fd.key] ? (
-                      <p key={fd.key} className="break-words text-xs leading-relaxed text-slate-500">
+                      <p key={fd.key} className="whitespace-pre-line break-words text-xs leading-relaxed text-slate-500">
                         <span className="text-slate-300">{fd.label}：</span>
                         {fd.key === "url" && /^https?:\/\//.test(f[fd.key]) ? (
                           <a href={f[fd.key]} target="_blank" rel="noreferrer" className="break-all text-terracotta-600 underline">
                             {f[fd.key]}
                           </a>
                         ) : (
-                          String(f[fd.key]).slice(0, 160)
+                          String(f[fd.key]).slice(0, 260)
                         )}
                       </p>
                     ) : null
