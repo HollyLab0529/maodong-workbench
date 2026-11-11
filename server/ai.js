@@ -190,6 +190,10 @@ module.exports = function createAiRouter({ requireAuth, currentUser, read, DATA_
       else if (k !== "•••") cfg.key_enc = encrypt(k);
     }
     if (b.clear_key) delete cfg.key_enc;
+    // 防呆：开了开关但没填端点，等于没配上，还会盖掉已有配置
+    if (cfg.enabled && !cfg.base_url) {
+      return res.status(400).json({ error: "启用 AI 前先填 API 端点（如 https://api.deepseek.com/v1）" });
+    }
     cfg.updated_at = new Date().toISOString();
     writeConfig(cfg);
     res.json({ config: publicConfig(cfg) });
