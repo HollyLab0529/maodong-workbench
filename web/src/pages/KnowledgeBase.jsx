@@ -8,7 +8,7 @@ import {
 } from "../components/ui";
 import { Plus, Search, BookOpen, Pencil, Trash2, ImagePlus, Loader2, Sparkles, Download } from "lucide-react";
 import { downloadText, safeName } from "../download";
-import { tagChip } from "../colors";
+import { tagChip, useTagColors } from "../colors";
 
 const CATEGORIES = ["技术学习", "求职经验", "项目复盘", "工具技巧", "其他"];
 
@@ -30,6 +30,7 @@ const tintOf = (c) => {
 const EMPTY = { title: "", category: "技术学习", tags: "", content: "" };
 
 export default function KnowledgeBase() {
+  useTagColors();
   const [articles, setArticles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
