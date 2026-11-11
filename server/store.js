@@ -16,6 +16,7 @@ const DEFAULT_DB = {
   accounts: [],
   expenses: [],
   quick_notes: [],
+  note_tags: [],
   settings: [],
   interviews: [],
   resumes: [],
