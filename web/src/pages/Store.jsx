@@ -1,11 +1,11 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import Layout, { PageHeader } from "../components/Layout";
 import { api } from "../api";
 import { useAuth } from "../auth";
-import { MODULES, resolveModules } from "../modules";
-import { Button, EmptyState, toast } from "../components/ui";
-import { ArrowDown, ArrowUp, Check, Download, GripVertical, Pin, Trash2, Lightbulb } from "lucide-react";
+import { MODULES, resolveModules, DEFAULT_GROUPS, UNGROUPED_IDS } from "../modules";
+import { Button, EmptyState, Input, toast } from "../components/ui";
+import { ArrowDown, ArrowUp, Check, Download, GripVertical, ListTree, Pin, Plus, RotateCcw, Trash2, Lightbulb } from "lucide-react";
 
 export default function Store() {
   const { user, setUser } = useAuth();
@@ -16,6 +16,40 @@ export default function Store() {
   );
   const dragId = useRef(null);
   const [saving, setSaving] = useState(false);
+
+  // ===== 导航分组：状态来自 user.nav_groups =====
+  const [groups, setGroups] = useState([]);
+  const [newGroupName, setNewGroupName] = useState("");
+
+  useEffect(() => {
+    const conf = Array.isArray(user?.nav_groups) && user.nav_groups.length ? user.nav_groups : DEFAULT_GROUPS;
+    setGroups(conf.map((g) => ({ name: g.name, modules: [...g.modules] })));
+  }, [user]);
+
+  const groupIdxOf = (id) => groups.findIndex((g) => g.modules.includes(id));
+
+  const saveGroups = async (clean) => {
+    setSaving(true);
+    try {
+      const { user: u } = await api.updateProfile({ nav_groups: clean });
+      if (u) setUser(u);
+      else setUser((prev) => ({ ...prev, nav_groups: clean }));
+      toast.success("分组已保存，侧栏即刻生效");
+    } catch (e) {
+      toast.error("保存分组失败：" + e.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // 每个模块卡片上的分组下拉：选择后立即保存
+  const setModuleGroup = (id, idxStr) => {
+    const idx = Number(idxStr);
+    const next = groups.map((g) => ({ name: g.name, modules: g.modules.filter((m) => m !== id) }));
+    if (next[idx]) next[idx] = { ...next[idx], modules: [...next[idx].modules, id] };
+    setGroups(next);
+    saveGroups(next);
+  };
 
   const save = async (enabledIds, orderIds) => {
     setSaving(true);
@@ -130,7 +164,24 @@ export default function Store() {
                     <span className="truncate">{m.title}</span>
                     {m.core ? <span className="shrink-0 text-[10px] text-slate-300">固定模块</span> : null}
                   </p>
-                  <p className="truncate text-xs text-slate-400">{m.desc}</p>
+                  <div className="flex items-center gap-2">
+                    <p className="min-w-0 flex-1 truncate text-xs text-slate-400">{m.desc}</p>
+                    {!UNGROUPED_IDS.includes(m.id) ? (
+                      <select
+                        value={groupIdxOf(m.id)}
+                        onChange={(e) => setModuleGroup(m.id, e.target.value)}
+                        title="所属分组（侧栏里的归类）"
+                        className="shrink-0 cursor-pointer rounded-md border border-slate-200 bg-white px-1.5 py-0.5 text-[11px] text-slate-500 transition-colors hover:border-terracotta-300"
+                      >
+                        <option value={-1}>未分组</option>
+                        {groups.map((g, i) => (
+                          <option key={i} value={i}>
+                            {g.name}
+                          </option>
+                        ))}
+                      </select>
+                    ) : null}
+                  </div>
                 </div>
                 <div className="flex shrink-0 items-center gap-0.5">
                   {!m.core ? (
@@ -151,6 +202,54 @@ export default function Store() {
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+
+        {/* 侧栏分组管理：组名 / 顺序 / 新建 */}
+        <div>
+          <h2 className="mb-2 flex items-center gap-1.5 text-sm font-semibold text-slate-900">
+            <ListTree className="h-4 w-4 text-terracotta" /> 侧栏分组
+            <span className="text-xs font-normal text-slate-400">每个模块右侧的下拉可直接换组，这里改组名和顺序</span>
+          </h2>
+          <div className={`${card} space-y-2`}>
+            {groups.map((g, i) => (
+              <div key={i} className="flex items-center gap-2 rounded-lg bg-slate-50 px-2.5 py-1.5">
+                <Input
+                  value={g.name}
+                  onChange={(e) => setGroups((l) => l.map((x, j) => (j === i ? { ...x, name: e.target.value } : x)))}
+                  className="h-7 w-32 px-2 text-xs"
+                  maxLength={12}
+                />
+                <span className="ml-1 shrink-0 text-[11px] text-slate-400">{g.modules.length} 个模块</span>
+                <div className="ml-auto flex items-center gap-0.5">
+                  <button onClick={() => setGroups((l) => { const n = [...l]; const j = i - 1; if (j < 0 || j >= n.length) return n; [n[i], n[j]] = [n[j], n[i]]; return n; })} title="上移" className="rounded p-1 text-slate-400 hover:bg-slate-200 hover:text-slate-700"><ArrowUp className="h-3.5 w-3.5" /></button>
+                  <button onClick={() => setGroups((l) => { const n = [...l]; const j = i + 1; if (j < 0 || j >= n.length) return n; [n[i], n[j]] = [n[j], n[i]]; return n; })} title="下移" className="rounded p-1 text-slate-400 hover:bg-slate-200 hover:text-slate-700"><ArrowDown className="h-3.5 w-3.5" /></button>
+                  <button onClick={() => setGroups((l) => l.filter((_, j) => j !== i))} title="删除分组（模块回到未分组）" className="rounded p-1 text-slate-400 hover:bg-red-50 hover:text-red-500"><Trash2 className="h-3.5 w-3.5" /></button>
+                </div>
+              </div>
+            ))}
+
+            <div className="flex flex-wrap items-center gap-2 border-t border-slate-100 pt-3">
+              <Input value={newGroupName} onChange={(e) => setNewGroupName(e.target.value)} placeholder="新分组名" className="h-8 w-32 text-xs" maxLength={12} />
+              <Button size="sm" variant="outline" onClick={() => {
+                const name = newGroupName.trim();
+                if (!name) return toast.error("先填分组名");
+                if (groups.some((g) => g.name === name)) return toast.error("已有同名分组");
+                setGroups((l) => [...l, { name, modules: [] }]);
+                setNewGroupName("");
+              }}><Plus className="h-3.5 w-3.5" /> 新建分组</Button>
+              <div className="ml-auto flex items-center gap-2">
+                <Button size="sm" variant="ghost" onClick={() => setGroups(DEFAULT_GROUPS.map((g) => ({ name: g.name, modules: [...g.modules] })))}><RotateCcw className="h-3.5 w-3.5" /> 恢复默认</Button>
+                <Button size="sm" onClick={() => {
+                  const clean = groups.map((g) => ({ name: g.name.trim(), modules: g.modules })).filter((g) => g.name);
+                  if (!clean.length) return toast.error("至少保留一个分组");
+                  saveGroups(clean);
+                }}><Check className="h-3.5 w-3.5" /> 保存分组</Button>
+              </div>
+            </div>
+            <p className="text-[11px] leading-relaxed text-slate-400">
+              分组只影响侧栏的归类展示；总览、模块超市、设置不参与分组。改完组名/顺序后记得点「保存分组」，模块下拉换组则即时生效。
+            </p>
           </div>
         </div>
 

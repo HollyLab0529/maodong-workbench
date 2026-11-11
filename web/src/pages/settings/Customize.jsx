@@ -1,10 +1,8 @@
 import { useEffect, useState } from "react";
-import { listRows, insertRow, updateRow, api } from "../../api";
+import { listRows, insertRow, updateRow } from "../../api";
 import { Button, Input, Label, toast } from "../../components/ui";
 import { JOB_STATUSES, TONE_NAMES, toneChip, registerTagColors } from "../../colors";
-import { ArrowUp, ArrowDown, Plus, RotateCcw, Check, Palette, Tags, Trash2, ListTree } from "lucide-react";
-import { useAuth } from "../../auth";
-import { resolveModules, DEFAULT_GROUPS, UNGROUPED_IDS } from "../../modules";
+import { ArrowUp, ArrowDown, Plus, RotateCcw, Check, Palette, Tags, Trash2 } from "lucide-react";
 
 const DEFAULT_STATUSES = JOB_STATUSES.map((name, i) => ({
   name,
@@ -37,121 +35,6 @@ async function saveSetting(key, value) {
   const hit = rows.find((r) => r.key === key);
   if (hit) await updateRow("settings", hit.id, { value });
   else await insertRow("settings", { key, value });
-}
-
-// ===== 导航分组管理:组名/归属/顺序全部可改,存 user.nav_groups =====
-function NavGroupsManager() {
-  const { user, setUser } = useAuth();
-  const [groups, setGroups] = useState([]);
-  const [newName, setNewName] = useState("");
-  const [addingTo, setAddingTo] = useState(-1);
-  const [saving, setSaving] = useState(false);
-
-  useEffect(() => {
-    const conf = Array.isArray(user?.nav_groups) && user.nav_groups.length ? user.nav_groups : DEFAULT_GROUPS;
-    setGroups(conf.map((g) => ({ name: g.name, modules: [...g.modules] })));
-  }, [user]);
-
-  const enabled = resolveModules(user).filter((m) => !UNGROUPED_IDS.includes(m.id));
-  const inAny = new Set(groups.flatMap((g) => g.modules));
-  const pool = enabled.filter((m) => !inAny.has(m.id));
-  const titleOf = (id) => (enabled.find((m) => m.id === id) || {}).title || id;
-
-  const save = async () => {
-    const clean = groups.map((g) => ({ name: g.name.trim(), modules: g.modules })).filter((g) => g.name);
-    if (!clean.length) return toast.error("至少保留一个分组(或恢复默认)");
-    setSaving(true);
-    try {
-      const { user: updated } = await api.updateProfile({ nav_groups: clean });
-      if (updated) setUser(updated);
-      else setUser((u) => ({ ...u, nav_groups: clean }));
-      setGroups(clean);
-      toast.success("分组已保存,侧栏即刻生效");
-    } catch (e) {
-      toast.error("保存失败:" + e.message);
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const moveGroup = (i, d) => setGroups((l) => { const n = [...l]; const j = i + d; if (j < 0 || j >= n.length) return n; [n[i], n[j]] = [n[j], n[i]]; return n; });
-
-  return (
-    <div className={card}>
-      <h2 className="mb-1 flex items-center gap-2 text-sm font-semibold text-slate-900">
-        <ListTree className="h-4 w-4 text-terracotta" /> 导航分组
-      </h2>
-      <p className="mb-3 text-xs text-slate-500">
-        组名、归属、顺序都能改;点模块的 ✕ 移到未分组,点组的「＋」从未分组取回。总览、模块超市、设置不参与分组。
-      </p>
-      <div className="space-y-2">
-        {groups.map((g, i) => (
-          <div key={i} className="rounded-lg bg-slate-50 p-2.5">
-            <div className="flex items-center gap-2">
-              <Input
-                value={g.name}
-                onChange={(e) => setGroups((l) => l.map((x, j) => (j === i ? { ...x, name: e.target.value } : x)))}
-                className="h-7 w-28 px-2 text-xs"
-                maxLength={12}
-              />
-              <div className="ml-auto flex items-center gap-0.5">
-                <button onClick={() => setAddingTo(addingTo === i ? -1 : i)} title="从未分组添加"
-                  className={`rounded p-1 ${addingTo === i ? "bg-terracotta-50 text-terracotta-600" : "text-slate-400 hover:bg-slate-200 hover:text-slate-700"}`}><Plus className="h-3.5 w-3.5" /></button>
-                <button onClick={() => moveGroup(i, -1)} title="上移" className="rounded p-1 text-slate-400 hover:bg-slate-200 hover:text-slate-700"><ArrowUp className="h-3.5 w-3.5" /></button>
-                <button onClick={() => moveGroup(i, 1)} title="下移" className="rounded p-1 text-slate-400 hover:bg-slate-200 hover:text-slate-700"><ArrowDown className="h-3.5 w-3.5" /></button>
-                <button onClick={() => setGroups((l) => l.filter((_, j) => j !== i))} title="删除分组(模块回到未分组)"
-                  className="rounded p-1 text-slate-400 hover:bg-red-50 hover:text-red-500"><Trash2 className="h-3.5 w-3.5" /></button>
-              </div>
-            </div>
-            {g.modules.length ? (
-              <div className="mt-2 flex flex-wrap gap-1">
-                {g.modules.map((id) => (
-                  <span key={id} className="flex items-center gap-1 rounded-full bg-white px-2 py-0.5 text-[11px] text-slate-600 ring-1 ring-slate-200">
-                    {titleOf(id)}
-                    <button onClick={() => setGroups((l) => l.map((x, j) => (j === i ? { ...x, modules: x.modules.filter((m) => m !== id) } : x)))}
-                      className="text-slate-300 hover:text-red-500" title="移到未分组">✕</button>
-                  </span>
-                ))}
-              </div>
-            ) : (
-              <p className="mt-1.5 text-[11px] text-slate-400">空分组,点「＋」添加模块</p>
-            )}
-            {addingTo === i && pool.length ? (
-              <div className="mt-2 flex flex-wrap items-center gap-1 rounded-md bg-terracotta-50/60 p-2">
-                {pool.map((m) => (
-                  <button key={m.id} onClick={() => setGroups((l) => l.map((x, j) => (j === i ? { ...x, modules: [...x.modules, m.id] } : x)))}
-                    className="rounded-full bg-white px-2 py-0.5 text-[11px] text-slate-600 ring-1 ring-slate-200 hover:ring-terracotta-300">
-                    ＋ {m.title}
-                  </button>
-                ))}
-              </div>
-            ) : null}
-          </div>
-        ))}
-      </div>
-
-      {pool.length && addingTo < 0 ? (
-        <p className="mt-2 text-[11px] text-slate-400">未归组:{pool.map((m) => m.title).join("、")}(点某组的「＋」加入)</p>
-      ) : null}
-
-      <div className="mt-3 flex flex-wrap items-center gap-2">
-        <Input value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="新分组名" className="h-8 w-32 text-xs" maxLength={12} />
-        <Button size="sm" variant="outline"
-          onClick={() => {
-            const name = newName.trim();
-            if (!name) return toast.error("先填分组名");
-            setGroups((l) => [...l, { name, modules: [] }]);
-            setNewName("");
-          }}><Plus className="h-3.5 w-3.5" /> 新建分组</Button>
-        <div className="ml-auto flex items-center gap-2">
-          <Button size="sm" variant="ghost" onClick={() => { setGroups(DEFAULT_GROUPS.map((g) => ({ name: g.name, modules: [...g.modules] }))); setAddingTo(-1); }}>
-            <RotateCcw className="h-3.5 w-3.5" /> 恢复默认
-          </Button>
-          <Button size="sm" onClick={save} loading={saving}><Check className="h-3.5 w-3.5" /> 保存分组</Button>
-        </div>
-      </div>
-    </div>
-  );
 }
 
 export default function Customize() {
@@ -315,9 +198,6 @@ export default function Customize() {
           <Button size="sm" variant="ghost" onClick={() => setStatuses(DEFAULT_STATUSES)}><RotateCcw className="h-3.5 w-3.5" /> 恢复默认</Button>
         </div>
       </div>
-
-      {/* 导航分组 */}
-      <NavGroupsManager />
 
       {/* 标签配色管理 */}
       <div className={card}>
