@@ -228,6 +228,10 @@ export default function Settings() {
   useEffect(() => { loadAi(); }, []);
 
   const saveAi = async () => {
+    if (aiCfg.enabled && !String(aiCfg.base_url || "").trim()) {
+      toast.error("开了「已启用」就得填 API 端点（如 https://api.deepseek.com/v1），不然 AI 用不了");
+      return;
+    }
     setSavingAi(true);
     try {
       const patch = { base_url: aiCfg.base_url, model: aiCfg.model, enabled: aiCfg.enabled };
