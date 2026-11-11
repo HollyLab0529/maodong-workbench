@@ -3,12 +3,12 @@ import { PageHeader } from "../../components/Layout";
 import { listRows, insertRow, updateRow, deleteRow } from "../../api";
 import { useLiveReload } from "../../live";
 import { Button, Input, Textarea, Label, Modal, EmptyState, Loading, toast } from "../../components/ui";
-import { Plus, Trash2, Loader2, Pencil, History, Building2 } from "lucide-react";
+import { Plus, Trash2, Loader2, Pencil, History, Building2, Link2, FileText, MapPin } from "lucide-react";
 import { JOB_STATUSES, jobStatusStyle, useJobStatuses } from "../../colors";
 
 export const STATUSES = JOB_STATUSES;
 export const STATUS_STYLE = Object.fromEntries(JOB_STATUSES.map((s) => [s, jobStatusStyle(s)]));
-const EMPTY = { company: "", position: "", status: "待投递", note: "" };
+const EMPTY = { company: "", position: "", jd_code: "", location: "", business: "", link: "", applied_date: "", resume_id: "", status: "待投递", note: "" };
 
 export default function Board() {
   const { statuses, styleOf } = useJobStatuses();
@@ -20,11 +20,14 @@ export default function Board() {
   const [saving, setSaving] = useState(false);
   const [detail, setDetail] = useState(null);
   const [events, setEvents] = useState([]);
+  const [resumes, setResumes] = useState([]);
   const [ev, setEv] = useState({ title: "", event_date: "", note: "" });
 
   const load = async () => {
     try {
-      setApps(await listRows("job_apps"));
+      const [rows, rs] = await Promise.all([listRows("job_apps"), listRows("resumes").catch(() => [])]);
+      setApps(rows);
+      setResumes(rs);
     } catch (e) {
       toast.error("加载失败：" + e.message);
     } finally {
@@ -34,9 +37,16 @@ export default function Board() {
   useEffect(() => { load(); }, []);
   useLiveReload(load);
 
-  const openNew = () => { setForm(EMPTY); setEditingId(null); setFormOpen(true); };
+  const resumeName = (a) => resumes.find((r) => r.id === Number(a.resume_id))?.name || "";
+
+  const openNew = () => { setForm({ ...EMPTY, resume_id: resumes.find((r) => r.in_use) ? String(resumes.find((r) => r.in_use).id) : "" }); setEditingId(null); setFormOpen(true); };
   const openEdit = (a) => {
-    setForm({ company: a.company || "", position: a.position || "", status: a.status || "待投递", note: a.note || "" });
+    setForm({
+      company: a.company || "", position: a.position || "", jd_code: a.jd_code || "",
+      location: a.location || "", business: a.business || "", link: a.link || "",
+      applied_date: a.applied_date || "", resume_id: a.resume_id ? String(a.resume_id) : "",
+      status: a.status || "待投递", note: a.note || "",
+    });
     setEditingId(a.id);
     setFormOpen(true);
   };
@@ -48,6 +58,12 @@ export default function Board() {
       const payload = {
         company: form.company.trim(),
         position: form.position.trim(),
+        jd_code: form.jd_code.trim(),
+        location: form.location.trim(),
+        business: form.business.trim(),
+        link: form.link.trim(),
+        applied_date: form.applied_date,
+        resume_id: form.resume_id || "",
         status: form.status,
         note: form.note.trim(),
         updated_at: new Date().toISOString(),
@@ -138,14 +154,40 @@ export default function Board() {
               onClick={() => openDetail(a)}
             >
               <div className="mb-2 flex items-start justify-between gap-2">
-                <div>
+                <div className="min-w-0">
                   <h3 className="font-medium text-slate-900">{a.company}</h3>
-                  <p className="text-xs text-slate-400">{a.position || "岗位未填"}</p>
+                  <p className="truncate text-xs text-slate-400">
+                    {a.position || "岗位未填"}
+                    {a.jd_code ? ` · JD ${a.jd_code}` : ""}
+                  </p>
                 </div>
                 <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs ${styleOf(a.status)}`}>
                   {a.status}
                 </span>
               </div>
+              {a.business || a.location || a.applied_date ? (
+                <p className="mb-1.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-slate-500">
+                  {a.location ? <span className="inline-flex items-center gap-0.5"><MapPin className="h-3 w-3" />{a.location}</span> : null}
+                  {a.business ? <span>{a.business}</span> : null}
+                  {a.applied_date ? <span className="text-slate-400">投递 {String(a.applied_date).slice(5)}</span> : null}
+                </p>
+              ) : null}
+              {(resumeName(a) || a.link) ? (
+                <p className="mb-1.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[11px] text-slate-400">
+                  {resumeName(a) ? <span className="inline-flex items-center gap-0.5"><FileText className="h-3 w-3" />用「{resumeName(a)}」版本</span> : null}
+                  {a.link ? (
+                    <a
+                      href={a.link}
+                      target="_blank"
+                      rel="noreferrer"
+                      onClick={(e) => e.stopPropagation()}
+                      className="inline-flex items-center gap-0.5 text-terracotta-600 hover:underline"
+                    >
+                      <Link2 className="h-3 w-3" /> 投递链接
+                    </a>
+                  ) : null}
+                </p>
+              ) : null}
               {a.note ? <p className="mb-2 line-clamp-2 text-xs text-slate-500">{a.note}</p> : null}
               <div className="flex flex-wrap items-center gap-1" onClick={(e) => e.stopPropagation()}>
                 {statuses.map((s) => (
@@ -179,7 +221,44 @@ export default function Board() {
               <Label>岗位</Label>
               <Input value={form.position} onChange={(e) => setForm({ ...form, position: e.target.value })} placeholder="如：AI 产品经理" />
             </div>
+            <div>
+              <Label>JD 编号（可选）</Label>
+              <Input value={form.jd_code} onChange={(e) => setForm({ ...form, jd_code: e.target.value })} placeholder="如 20261028-01" />
+            </div>
+            <div>
+              <Label>工作地点（可选）</Label>
+              <Input value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} placeholder="如：北京市" />
+            </div>
+            <div>
+              <Label>业务方向（可选）</Label>
+              <Input value={form.business} onChange={(e) => setForm({ ...form, business: e.target.value })} placeholder="如：B 端 / 搜索 / 大数据" />
+            </div>
+            <div>
+              <Label>投递日期（可选）</Label>
+              <Input type="date" value={form.applied_date} onChange={(e) => setForm({ ...form, applied_date: e.target.value })} />
+            </div>
           </div>
+          <div>
+            <Label>投递链接（可选）</Label>
+            <Input value={form.link} onChange={(e) => setForm({ ...form, link: e.target.value })} placeholder="https://…" />
+          </div>
+          {resumes.length ? (
+            <div>
+              <Label>使用简历版本（可选）</Label>
+              <select
+                value={form.resume_id}
+                onChange={(e) => setForm({ ...form, resume_id: e.target.value })}
+                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 outline-none focus:border-terracotta"
+              >
+                <option value="">不关联</option>
+                {resumes.map((r) => (
+                  <option key={r.id} value={r.id}>
+                    {r.name}{r.in_use ? "（在用）" : ""}
+                  </option>
+                ))}
+              </select>
+            </div>
+          ) : null}
           <div>
             <Label>当前状态</Label>
             <div className="flex flex-wrap gap-1.5">
@@ -216,6 +295,21 @@ export default function Board() {
               <Button variant="ghost" size="sm" onClick={() => openEdit(detail)}><Pencil className="h-3.5 w-3.5" /> 编辑</Button>
               <Button variant="danger" size="sm" onClick={() => remove(detail)}><Trash2 className="h-3.5 w-3.5" /> 删除</Button>
             </div>
+            {(detail.jd_code || detail.location || detail.business || detail.applied_date || detail.link || resumeName(detail)) ? (
+              <div className="mb-4 grid grid-cols-2 gap-x-4 gap-y-1.5 rounded-lg bg-slate-50 p-3 text-xs">
+                {detail.jd_code ? <p><span className="text-slate-400">JD 编号：</span><span className="text-slate-700">{detail.jd_code}</span></p> : null}
+                {detail.location ? <p><span className="text-slate-400">地点：</span><span className="text-slate-700">{detail.location}</span></p> : null}
+                {detail.business ? <p><span className="text-slate-400">业务：</span><span className="text-slate-700">{detail.business}</span></p> : null}
+                {detail.applied_date ? <p><span className="text-slate-400">投递日期：</span><span className="text-slate-700">{detail.applied_date}</span></p> : null}
+                {resumeName(detail) ? <p><span className="text-slate-400">简历版本：</span><span className="text-slate-700">{resumeName(detail)}</span></p> : null}
+                {detail.link ? (
+                  <p className="col-span-2 truncate">
+                    <span className="text-slate-400">链接：</span>
+                    <a href={detail.link} target="_blank" rel="noreferrer" className="text-terracotta-600 hover:underline">{detail.link}</a>
+                  </p>
+                ) : null}
+              </div>
+            ) : null}
             {detail.note ? <p className="mb-4 rounded-lg bg-slate-50 p-3 text-sm text-slate-600">{detail.note}</p> : null}
 
             <h3 className="mb-3 flex items-center gap-1.5 text-sm font-semibold text-slate-900">
