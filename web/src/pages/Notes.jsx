@@ -6,6 +6,7 @@ import { Button, Input, Textarea, Label, Badge, Modal, EmptyState, Loading, toas
 import {
   Plus, Trash2, Lightbulb, BookMarked, MessagesSquare, CalendarDays, Link2, ArrowUpCircle, Wand2, Sparkles,
 } from "lucide-react";
+import { tagChip } from "../colors";
 
 const NOTE_TYPES = [
   { type: "灵感想法", icon: Lightbulb, fields: [
@@ -261,7 +262,7 @@ export default function Notes() {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-1.5">
                     {(n.tags || "").split(/[,，]/).filter(Boolean).slice(0, 3).map((t) => (
-                      <span key={t} className="rounded bg-slate-100 px-1.5 py-0.5 text-[11px] text-slate-500">#{t.trim()}</span>
+                      <span key={t} className={`rounded px-1.5 py-0.5 text-[11px] ${tagChip(t)}`}>#{t.trim()}</span>
                     ))}
                     {n.promoted ? <Badge className="bg-green-50 text-green-600">已进知识库</Badge> : null}
                   </div>

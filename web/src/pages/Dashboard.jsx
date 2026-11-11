@@ -14,17 +14,7 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import { Link } from "react-router-dom";
-
-const STATUS_COLORS = {
-  投递中: "bg-blue-50 text-blue-600",
-  笔试: "bg-purple-50 text-purple-600",
-  一面: "bg-amber-50 text-amber-600",
-  二面: "bg-amber-50 text-amber-600",
-  三面: "bg-amber-50 text-amber-600",
-  HR面: "bg-orange-50 text-orange-600",
-  Offer: "bg-green-50 text-green-600",
-  结束: "bg-slate-100 text-slate-400",
-};
+import { jobStatusStyle } from "../colors";
 
 function StatCard({ icon: Icon, label, value, sub, to }) {
   return (
@@ -170,7 +160,7 @@ export default function Dashboard() {
                     {j.company}
                     <span className="ml-1.5 text-xs text-slate-400">{j.position}</span>
                   </p>
-                  <span className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] ${STATUS_COLORS[j.status] || "bg-slate-100 text-slate-500"}`}>
+                  <span className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] ${jobStatusStyle(j.status)}`}>
                     {j.status}
                   </span>
                 </div>

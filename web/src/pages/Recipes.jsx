@@ -5,6 +5,7 @@ import { useLiveReload } from "../live";
 import { Button, Input, Textarea, Label, Modal, EmptyState, Loading, toast } from "../components/ui";
 import MarkdownLite from "../components/MarkdownLite";
 import { Plus, Trash2, Pencil, ChefHat, Star, Clock3, ShoppingBasket, Copy, Check, Loader2, Sparkles } from "lucide-react";
+import { tagChip } from "../colors";
 
 const TYPES = ["家常", "快手", "烘焙", "汤", "早餐", "甜品"];
 const EMPTY = { title: "", type: "家常", ingredients: "", steps: "", tags: "", rating: 0 };
@@ -203,7 +204,7 @@ export default function Recipes() {
                     {r.tags ? (
                       <p className="mb-1 flex flex-wrap gap-1">
                         {String(r.tags).split(/[,，\s]+/).filter(Boolean).slice(0, 4).map((t) => (
-                          <span key={t} className="rounded bg-terracotta-50 px-1.5 py-0.5 text-[10px] text-terracotta-600">#{t}</span>
+                          <span key={t} className={`rounded px-1.5 py-0.5 text-[10px] ${tagChip(t)}`}>#{t}</span>
                         ))}
                       </p>
                     ) : null}
