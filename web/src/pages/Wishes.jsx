@@ -45,6 +45,7 @@ const recordDoneExpense = async (r) => {
 
 export default function Wishes() {
   const [rows, setRows] = useState([]);
+  const [expenses, setExpenses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filterType, setFilterType] = useState("全部");
   const [modalOpen, setModalOpen] = useState(false);
@@ -54,7 +55,9 @@ export default function Wishes() {
 
   const load = async () => {
     try {
-      setRows(await listRows("wishes"));
+      const [w, ex] = await Promise.all([listRows("wishes"), listRows("expenses")]);
+      setRows(w);
+      setExpenses(ex);
     } catch (e) {
       toast.error("加载失败:" + e.message);
     } finally {
@@ -132,6 +135,31 @@ export default function Wishes() {
     try { await deleteRow("wishes", r.id); } catch (e) { toast.error(String(e.message).includes("记录不存在") ? "这条已被删除,列表已刷新" : "删除失败:" + e.message); load(); }
   };
 
+  // 之前就标了「已拿下」、但当时还没有自动记账功能，漏掉的用一键补记补上
+  // （按备注前缀「心愿拿下:名称」匹配，忽略链接后缀，不会重复记）
+  const missingDone = useMemo(
+    () =>
+      rows.filter(
+        (r) =>
+          r.status === "已拿下" &&
+          moneyOf(r.target) > 0 &&
+          !expenses.some((e) => String(e.note || "").startsWith(`心愿拿下:${r.name}`))
+      ),
+    [rows, expenses]
+  );
+
+  const backfill = async () => {
+    let n = 0;
+    let sum = 0;
+    for (const r of missingDone) {
+      const amt = await recordDoneExpense(r);
+      if (amt) { n++; sum += amt; }
+    }
+    if (n) toast.success(`已补记 ${n} 笔支出，共 ¥${sum % 1 ? sum.toFixed(2) : sum} 🎉`);
+    else toast.success("没有需要补记的");
+    setExpenses(await listRows("expenses"));
+  };
+
   const quickDone = async (r) => {
     const next = { status: "已拿下" };
     setRows((l) => l.map((x) => (x.id === r.id ? { ...x, ...next } : x)));
@@ -202,6 +230,14 @@ export default function Wishes() {
                   </div>
                 </div>
               ))}
+              {q.s === "已拿下" && missingDone.length > 0 ? (
+                <button
+                  onClick={backfill}
+                  className="w-full rounded-lg border border-dashed border-green-300 px-2.5 py-2 text-[11px] text-green-700 transition-colors hover:bg-green-50"
+                >
+                  有 {missingDone.length} 条已拿下的心愿还没记进记账，点这里一键补记
+                </button>
+              ) : null}
             </div>
           </div>
         ))}
