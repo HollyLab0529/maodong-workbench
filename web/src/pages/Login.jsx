@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { api } from "../api";
 import CatLogo from "../components/CatLogo";
 import { Button, Input, Label } from "../components/ui";
+import { Eye, EyeOff } from "lucide-react";
 
 export default function Login({ onLogin }) {
   const [mode, setMode] = useState("login");
@@ -11,6 +12,7 @@ export default function Login({ onLogin }) {
   const [needInvite, setNeedInvite] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [showPwd, setShowPwd] = useState(false);
 
   useEffect(() => {
     api
@@ -62,14 +64,25 @@ export default function Login({ onLogin }) {
           </div>
           <div>
             <Label>密码</Label>
-            <Input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="至少 6 位"
-              autoComplete={mode === "login" ? "current-password" : "new-password"}
-              required
-            />
+            <div className="relative">
+              <Input
+                type={showPwd ? "text" : "password"}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="至少 6 位"
+                autoComplete={mode === "login" ? "current-password" : "new-password"}
+                required
+                className="pr-10"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPwd((v) => !v)}
+                title={showPwd ? "隐藏密码" : "显示密码"}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-300 transition-colors hover:text-slate-600"
+              >
+                {showPwd ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
           </div>
           {mode === "register" && needInvite ? (
             <div>
