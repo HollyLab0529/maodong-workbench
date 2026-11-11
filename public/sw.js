@@ -1,5 +1,5 @@
 /* 工作台 Service Worker：缓存壳资源，API 请求直连（数据实时性优先） */
-const CACHE = "workbench-v20";
+const CACHE = "workbench-v21";
 const SHELL = [
   "./",
   "manifest.webmanifest",

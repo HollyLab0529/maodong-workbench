@@ -5,6 +5,7 @@ data/
 
 # 助手令牌 / 密钥
 .assistant-token
+.workbench-token
 .env
 .env.*
 
