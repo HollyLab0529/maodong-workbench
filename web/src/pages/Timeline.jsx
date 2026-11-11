@@ -16,29 +16,38 @@ const TYPE_STYLE = {
 
 function itemOf(type, row) {
   const style = TYPE_STYLE[type];
+  let src = "";
   if (type === "kb") {
-    return { ...style, date: (row.updated_at || row.created_at || "").slice(0, 10), text: row.title, sub: row.category || "" };
+    src = row.updated_at || row.created_at || "";
+    return { ...style, date: src.slice(0, 10), time: src.slice(11, 16), text: row.title, sub: row.category || "" };
   }
   if (type === "job") {
-    return { ...style, date: (row.event_date || "").slice(0, 10), text: row.title, sub: row.note || "" };
+    // 有事件日期用事件日期(无时刻)；否则用创建时间(有时刻)
+    src = row.event_date || row.created_at || "";
+    return { ...style, date: src.slice(0, 10), time: row.event_date ? "" : src.slice(11, 16), text: row.title, sub: row.note || "" };
   }
   if (type === "todo") {
+    src = row.done ? row.updated_at || row.created_at : row.due_date || row.created_at || "";
     return {
       ...style,
-      date: (row.done ? row.updated_at || row.created_at : row.due_date || row.created_at || "").slice(0, 10),
+      date: src.slice(0, 10),
+      time: row.due_date && !row.done ? "" : src.slice(11, 16),
       text: (row.done ? "✔ 完成：" : "📌 待办：") + row.title,
       sub: "",
     };
   }
   if (type === "expense") {
+    src = row.spent_at || "";
     return {
       ...style,
-      date: (row.spent_at || "").slice(0, 10),
+      date: src.slice(0, 10),
+      time: src.slice(11, 16),
       text: `支出 ¥${Number(row.amount).toFixed(2)} · ${row.category}`,
       sub: row.note || "",
     };
   }
-  return { ...style, date: (row.created_at || "").slice(0, 10), text: row.title, sub: row.ntype || "" };
+  src = row.created_at || "";
+  return { ...style, date: src.slice(0, 10), time: src.slice(11, 16), text: row.title, sub: row.ntype || "" };
 }
 
 export default function Timeline() {
@@ -62,7 +71,7 @@ export default function Timeline() {
         ...notes.map((r) => itemOf("note", r)),
       ]
         .filter((i) => i.date)
-        .sort((a, b) => (a.date < b.date ? 1 : -1))
+        .sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : a.time < b.time ? 1 : a.time > b.time ? -1 : 0))
         .slice(0, 150);
       setItems(merged);
     } finally {
@@ -111,7 +120,10 @@ export default function Timeline() {
                         <span className="block truncate text-xs text-slate-400">{String(item.sub).slice(0, 80)}</span>
                       ) : null}
                     </span>
-                    <span className="shrink-0 text-[11px] text-slate-300">{item.label}</span>
+                    <span className="shrink-0 text-[11px] text-slate-300">
+                      {item.time ? <span className="mr-1 font-mono text-slate-400">{item.time}</span> : null}
+                      {item.label}
+                    </span>
                   </button>
                 ))}
               </div>
