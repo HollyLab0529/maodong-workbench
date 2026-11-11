@@ -17,7 +17,7 @@ PATTERNS=(
 
 FOUND=0
 for p in "${PATTERNS[@]}"; do
-  hits=$(git grep -I -i -E "$p" "$SHA" -- . ':(exclude)LICENSE' 2>/dev/null)
+  hits=$(git grep -I -i -E "$p" "$SHA" -- . ':(exclude)LICENSE' ':(exclude)scripts/check-sensitive.sh' 2>/dev/null)
   if [ -n "$hits" ]; then
     echo "❌ 检测到敏感信息 [$p]:"
     echo "$hits" | head -10
