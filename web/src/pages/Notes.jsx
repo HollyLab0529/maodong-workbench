@@ -39,12 +39,12 @@ const NOTE_TYPES = [
 
 // 类型配色：筛选、卡片徽标、左侧色条、图标四处统一
 const NOTE_TINT = {
-  灵感想法: { chip: "border-amber-200 bg-amber-50 text-amber-700", edge: "border-l-amber-400", icon: "text-amber-500" },
-  学习摘录: { chip: "border-sky-200 bg-sky-50 text-sky-700", edge: "border-l-sky-400", icon: "text-sky-500" },
-  沟通记录: { chip: "border-violet-200 bg-violet-50 text-violet-700", edge: "border-l-violet-400", icon: "text-violet-500" },
-  日常事务: { chip: "border-emerald-200 bg-emerald-50 text-emerald-700", edge: "border-l-emerald-400", icon: "text-emerald-500" },
-  收藏链接: { chip: "border-rose-200 bg-rose-50 text-rose-700", edge: "border-l-rose-400", icon: "text-rose-500" },
-  改动日志: { chip: "border-slate-300 bg-slate-100 text-slate-600", edge: "border-l-slate-400", icon: "text-slate-500" },
+  灵感想法: { chip: "border-[#e3d9c2] bg-[#f1eadc] text-[#8a7444]", edge: "border-l-[#c9b98d]", icon: "text-[#a6905f]" },
+  学习摘录: { chip: "border-[#c9d8e2] bg-[#e4eaef] text-[#5f7d92]", edge: "border-l-[#a3bccd]", icon: "text-[#7a94a8]" },
+  沟通记录: { chip: "border-[#d6cddf] bg-[#eae5ee] text-[#7a6b8c]", edge: "border-l-[#b7a9c6]", icon: "text-[#90829f]" },
+  日常事务: { chip: "border-[#cfd8c2] bg-[#e8ecdf] text-[#6d7a50]", edge: "border-l-[#aebd93]", icon: "text-[#87946e]" },
+  收藏链接: { chip: "border-[#e0cbc8] bg-[#f1e4e2] text-[#99625a]", edge: "border-l-[#ccaba6]", icon: "text-[#b07f78]" },
+  改动日志: { chip: "border-[#d6d4ce] bg-[#edecea] text-[#6e6c66]", edge: "border-l-[#b5b2aa]", icon: "text-[#8b8983]" },
 };
 const noteTint = (t) => NOTE_TINT[t] || NOTE_TINT["灵感想法"];
 
@@ -424,7 +424,7 @@ export default function Notes() {
                     {cardTags(n).slice(0, 4).map((t) => (
                       <span key={t} className={`rounded px-1.5 py-0.5 text-[11px] ${tagChip(t)}`}>#{t}</span>
                     ))}
-                    {n.promoted ? <Badge className="bg-green-50 text-green-600">已进知识库</Badge> : null}
+                    {n.promoted ? <Badge className="tone-green">已进知识库</Badge> : null}
                   </div>
                   <div className="flex shrink-0 items-center gap-1">
                     <span className="text-[11px] text-slate-300">{fmtTime(n.created_at)}</span>
