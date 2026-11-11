@@ -18,6 +18,7 @@ import {
   ChefHat,
   MessageSquareHeart,
   AlarmClock,
+  KeyRound,
 } from "lucide-react";
 
 /**
@@ -44,6 +45,7 @@ export const MODULES = [
   { id: "sleep", title: "睡眠打卡", to: "/sleep", icon: BedDouble, defaultOn: false, desc: "记录入睡起床，看本周睡得怎么样" },
   { id: "subs", title: "订阅管理", to: "/subs", icon: CreditCard, defaultOn: false, desc: "会员 / 软件 / 云盘，月花多少钱一目了然" },
   { id: "expiry", title: "过期提醒", to: "/expiry", icon: AlarmClock, defaultOn: false, desc: "调料 / 化妆品 / 药品的到期日，临期倒计时 + 提醒" },
+  { id: "accounts", title: "账号管理", to: "/accounts", icon: KeyRound, defaultOn: false, desc: "各平台账号密码集中记，一键复制 + 强度 / 重复检查" },
   { id: "trips", title: "旅行清单", to: "/trips", icon: Plane, defaultOn: false, desc: "行程计划 + 行前待办清单" },
   { id: "recipes", title: "菜谱收藏", to: "/recipes", icon: ChefHat, defaultOn: false, desc: "收藏想做的菜，食材步骤都在" },
   { id: "feedback", title: "反馈看板", to: "/feedback", icon: MessageSquareHeart, defaultOn: false, desc: "作品集的访客留言与访问统计" },

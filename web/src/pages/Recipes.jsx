@@ -5,12 +5,13 @@ import { useLiveReload } from "../live";
 import { Button, Input, Textarea, Label, Modal, EmptyState, Loading, toast } from "../components/ui";
 import MarkdownLite from "../components/MarkdownLite";
 import { Plus, Trash2, Pencil, ChefHat, Star, Clock3, ShoppingBasket, Copy, Check, Loader2, Sparkles } from "lucide-react";
-import { tagChip } from "../colors";
+import { tagChip, useTagColors } from "../colors";
 
 const TYPES = ["家常", "快手", "烘焙", "汤", "早餐", "甜品"];
 const EMPTY = { title: "", type: "家常", ingredients: "", steps: "", tags: "", rating: 0 };
 
 export default function Recipes() {
+  useTagColors();
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("全部");
