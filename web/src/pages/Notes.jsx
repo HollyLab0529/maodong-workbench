@@ -232,7 +232,11 @@ export default function Notes() {
   const countOf = (t) => (t === "全部" ? notes.length : notes.filter((n) => n.ntype === t).length);
 
   // ---- 标签管理：新增 / 改名 / 删除 / 拖拽排序 ----
-  const sortedTagLib = useMemo(() => [...tagLib].sort(tagOrder), [tagLib, tagOrder]);
+  // 注意：tagLib 是对象数组，不能复用 tagOrder（那是给标签名字符串用的）
+  const sortedTagLib = useMemo(
+    () => [...tagLib].sort((a, b) => (a.sort ?? 9999) - (b.sort ?? 9999) || a.name.localeCompare(b.name)),
+    [tagLib]
+  );
 
   const addLibTag = async () => {
     const name = tagInput.trim().replace(/^#/, "");
@@ -311,7 +315,7 @@ export default function Notes() {
 
   const candidates = sortedTagLib.filter((t) => !tagArr.includes(t.name));
 
-  const cardTags = (n) => splitTags(n.tags).sort(tagOrder);
+  const cardTags = (n) => splitTags(n.tags).sort(tagOrder); // tagOrder: 标签名字符串专用
 
   return (
     <Layout>
