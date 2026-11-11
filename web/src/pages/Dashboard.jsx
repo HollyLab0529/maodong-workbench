@@ -14,7 +14,7 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import { Link } from "react-router-dom";
-import { jobStatusStyle } from "../colors";
+import { jobStatusStyle, useJobStatuses } from "../colors";
 
 function StatCard({ icon: Icon, label, value, sub, to }) {
   return (
@@ -36,6 +36,7 @@ function StatCard({ icon: Icon, label, value, sub, to }) {
 }
 
 export default function Dashboard() {
+  const { styleOf } = useJobStatuses();
   const { user } = useAuth();
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
@@ -160,7 +161,7 @@ export default function Dashboard() {
                     {j.company}
                     <span className="ml-1.5 text-xs text-slate-400">{j.position}</span>
                   </p>
-                  <span className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] ${jobStatusStyle(j.status)}`}>
+                  <span className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] ${styleOf(j.status)}`}>
                     {j.status}
                   </span>
                 </div>

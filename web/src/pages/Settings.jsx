@@ -5,6 +5,7 @@ import { api, exportUrl, uploadImage } from "../api";
 import { useAuth } from "../auth";
 import { PALETTES, usePalette } from "../theme";
 import FontPicker from "../components/FontPicker";
+import Customize from "./settings/Customize";
 import { Button, Input, Label, Loading, toast } from "../components/ui";
 import {
   Bot,
@@ -324,6 +325,9 @@ export default function Settings() {
               </Button>
             </div>
           </div>
+
+          {/* 状态与标签自定义 */}
+          <Customize />
 
           {/* 配色 */}
           <div className={card}>

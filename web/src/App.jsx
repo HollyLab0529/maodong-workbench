@@ -15,6 +15,7 @@ import Weight from "./pages/Weight";
 import Sleep from "./pages/Sleep";
 import Subs from "./pages/Subs";
 import Expiry from "./pages/Expiry";
+import Accounts from "./pages/Accounts";
 import Trips from "./pages/Trips";
 import Recipes from "./pages/Recipes";
 import Feedback from "./pages/Feedback";
@@ -45,6 +46,7 @@ export default function App() {
           <Route path="/sleep" element={<Sleep />} />
           <Route path="/subs" element={<Subs />} />
           <Route path="/expiry" element={<Expiry />} />
+          <Route path="/accounts" element={<Accounts />} />
           <Route path="/trips" element={<Trips />} />
           <Route path="/recipes" element={<Recipes />} />
           <Route path="/feedback" element={<Feedback />} />

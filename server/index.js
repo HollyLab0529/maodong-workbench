@@ -39,6 +39,7 @@ const COLLECTIONS = {
   todos: ["title", "priority", "due_date", "due_time", "location", "quadrant", "done", "repeat"],
   ideas: ["title", "detail", "status"],
   expiry_items: ["name", "category", "expire_date", "note", "used"],
+  accounts: ["platform", "account", "password", "category", "url", "note"],
   expenses: ["amount", "category", "note", "spent_at"],
   quick_notes: ["ntype", "title", "tags", "content", "promoted"],
   settings: ["key", "value"],
@@ -137,6 +138,24 @@ function requireAuth(req, res, next) {
   if (!user) return res.status(401).json({ error: "未登录" });
   req.user = user;
   next();
+}
+
+// 页面数据接口：会话 / 旧助手令牌 / 新版 API 令牌均可；令牌走 scope 校验
+function requireUserOrApi(scope) {
+  return (req, res, next) => {
+    const user = currentUser(req) || assistantUser(req);
+    if (user) {
+      req.user = user;
+      return next();
+    }
+    const caller = apiCaller(req);
+    if (!caller) return res.status(401).json({ error: "未登录" });
+    if (scope === "write" && caller.token.scope !== "write") {
+      return res.status(403).json({ error: "令牌无写入权限" });
+    }
+    req.user = caller.user;
+    next();
+  };
 }
 
 // ---------- 开放 API 令牌（多枚、可分权限） ----------
@@ -703,7 +722,7 @@ app.post("/api/fetch-meta", requireAuth, async (req, res) => {
 const API_COLLECTIONS = new Set([
   "kb_articles", "job_apps", "job_events", "todos", "expenses", "quick_notes",
   "interviews", "resumes", "offers", "anniversaries", "workouts", "habits",
-  "habit_logs", "books", "weights", "sleeps", "subs", "trips", "recipes", "ideas", "expiry_items",
+  "habit_logs", "books", "weights", "sleeps", "subs", "trips", "recipes", "ideas", "expiry_items", "accounts",
 ]);
 
 function apiCollParam(req, res) {
@@ -874,7 +893,7 @@ function collParam(req, res) {
   return coll;
 }
 
-app.get("/api/data/:coll", requireAuth, (req, res) => {
+app.get("/api/data/:coll", requireUserOrApi("read"), (req, res) => {
   const coll = collParam(req, res);
   if (!coll) return;
   const rows = read((db) =>
@@ -885,7 +904,7 @@ app.get("/api/data/:coll", requireAuth, (req, res) => {
   res.json({ rows });
 });
 
-app.post("/api/data/:coll", requireAuth, (req, res) => {
+app.post("/api/data/:coll", requireUserOrApi("write"), (req, res) => {
   const coll = collParam(req, res);
   if (!coll) return;
   const body = req.body || {};
@@ -902,7 +921,7 @@ app.post("/api/data/:coll", requireAuth, (req, res) => {
     .catch((e) => res.status(500).json({ error: e.message }));
 });
 
-app.patch("/api/data/:coll/:id", requireAuth, (req, res) => {
+app.patch("/api/data/:coll/:id", requireUserOrApi("write"), (req, res) => {
   const coll = collParam(req, res);
   if (!coll) return;
   const id = Number(req.params.id);
@@ -920,7 +939,7 @@ app.patch("/api/data/:coll/:id", requireAuth, (req, res) => {
     .catch((e) => res.status(400).json({ error: e.message }));
 });
 
-app.delete("/api/data/:coll/:id", requireAuth, (req, res) => {
+app.delete("/api/data/:coll/:id", requireUserOrApi("write"), (req, res) => {
   const coll = collParam(req, res);
   if (!coll) return;
   const id = Number(req.params.id);

@@ -4,13 +4,14 @@ import { listRows, insertRow, updateRow, deleteRow } from "../../api";
 import { useLiveReload } from "../../live";
 import { Button, Input, Textarea, Label, Modal, EmptyState, Loading, toast } from "../../components/ui";
 import { Plus, Trash2, Loader2, Pencil, History, Building2 } from "lucide-react";
-import { JOB_STATUSES, jobStatusStyle } from "../../colors";
+import { JOB_STATUSES, jobStatusStyle, useJobStatuses } from "../../colors";
 
 export const STATUSES = JOB_STATUSES;
 export const STATUS_STYLE = Object.fromEntries(JOB_STATUSES.map((s) => [s, jobStatusStyle(s)]));
 const EMPTY = { company: "", position: "", status: "待投递", note: "" };
 
 export default function Board() {
+  const { statuses, styleOf } = useJobStatuses();
   const [apps, setApps] = useState([]);
   const [loading, setLoading] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
@@ -141,20 +142,20 @@ export default function Board() {
                   <h3 className="font-medium text-slate-900">{a.company}</h3>
                   <p className="text-xs text-slate-400">{a.position || "岗位未填"}</p>
                 </div>
-                <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs ${jobStatusStyle(a.status)}`}>
+                <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs ${styleOf(a.status)}`}>
                   {a.status}
                 </span>
               </div>
               {a.note ? <p className="mb-2 line-clamp-2 text-xs text-slate-500">{a.note}</p> : null}
               <div className="flex flex-wrap items-center gap-1" onClick={(e) => e.stopPropagation()}>
-                {STATUSES.map((s) => (
+                {statuses.map((s) => (
                   <button
                     key={s}
                     onClick={() => changeStatus(a, s)}
                     title={a.status === s ? "当前状态" : `改为「${s}」`}
                     className={`rounded px-1.5 py-0.5 text-[11px] transition-colors ${
                       a.status === s
-                        ? "font-medium " + jobStatusStyle(s)
+                        ? "font-medium " + styleOf(s)
                         : "text-slate-400 hover:bg-slate-100"
                     }`}
                   >
@@ -182,13 +183,13 @@ export default function Board() {
           <div>
             <Label>当前状态</Label>
             <div className="flex flex-wrap gap-1.5">
-              {STATUSES.map((s) => (
+              {statuses.map((s) => (
                 <button
                   key={s}
                   onClick={() => setForm({ ...form, status: s })}
                   className={`rounded-full px-3 py-1 text-xs transition-colors ${
                     form.status === s
-                      ? "font-medium ring-1 ring-terracotta " + jobStatusStyle(s)
+                      ? "font-medium ring-1 ring-terracotta " + styleOf(s)
                       : "bg-slate-100 text-slate-600 hover:bg-slate-200"
                   }`}
                 >

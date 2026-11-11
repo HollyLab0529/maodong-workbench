@@ -13,6 +13,7 @@ const DEFAULT_DB = {
   todos: [],
   ideas: [],
   expiry_items: [],
+  accounts: [],
   expenses: [],
   quick_notes: [],
   settings: [],

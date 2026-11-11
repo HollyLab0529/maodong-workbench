@@ -4,9 +4,9 @@ import { listRows, insertRow, updateRow, deleteRow, fmtTime, fetchMeta, api } fr
 import { useLiveReload } from "../live";
 import { Button, Input, Textarea, Label, Badge, Modal, EmptyState, Loading, toast } from "../components/ui";
 import {
-  Plus, Trash2, Lightbulb, BookMarked, MessagesSquare, CalendarDays, Link2, ArrowUpCircle, Wand2, Sparkles,
+  Plus, Trash2, Lightbulb, BookMarked, MessagesSquare, CalendarDays, Link2, ArrowUpCircle, Wand2, Sparkles, ScrollText,
 } from "lucide-react";
-import { tagChip } from "../colors";
+import { tagChip, useTagColors } from "../colors";
 
 const NOTE_TYPES = [
   { type: "灵感想法", icon: Lightbulb, fields: [
@@ -31,6 +31,9 @@ const NOTE_TYPES = [
     { key: "url", label: "链接", multiline: false },
     { key: "reason", label: "为什么收藏", multiline: true },
   ]},
+  { type: "改动日志", icon: ScrollText, fields: [
+    { key: "content", label: "本次改动", multiline: true },
+  ]},
 ];
 
 // 类型配色：筛选、卡片徽标、左侧色条、图标四处统一
@@ -40,10 +43,12 @@ const NOTE_TINT = {
   沟通记录: { chip: "border-violet-200 bg-violet-50 text-violet-700", edge: "border-l-violet-400", icon: "text-violet-500" },
   日常事务: { chip: "border-emerald-200 bg-emerald-50 text-emerald-700", edge: "border-l-emerald-400", icon: "text-emerald-500" },
   收藏链接: { chip: "border-rose-200 bg-rose-50 text-rose-700", edge: "border-l-rose-400", icon: "text-rose-500" },
+  改动日志: { chip: "border-slate-300 bg-slate-100 text-slate-600", edge: "border-l-slate-400", icon: "text-slate-500" },
 };
 const noteTint = (t) => NOTE_TINT[t] || NOTE_TINT["灵感想法"];
 
 export default function Notes() {
+  useTagColors();
   const [notes, setNotes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("全部");
