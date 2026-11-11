@@ -3,7 +3,7 @@ import { Gift, Plus, Trash2, Pencil, Link2, Check, Loader2 } from "lucide-react"
 import { listRows, insertRow, updateRow, deleteRow } from "../api";
 import { Button, Input, Label, Modal, toast } from "../components/ui";
 import { toneChip } from "../colors";
-import { PageHeader } from "../components/Layout";
+import Layout, { PageHeader } from "../components/Layout";
 
 const TYPES = ["想买", "想去", "想做"];
 const STATUSES = ["心痒", "攒钱中", "已拿下", "放弃"];
@@ -91,7 +91,7 @@ export default function Wishes() {
   };
 
   return (
-    <div>
+    <Layout>
       <PageHeader title="心愿清单" subtitle="想买的、想去的、想做的——记下来,一个个拿下" />
 
       <div className="mb-4 flex flex-wrap items-center gap-1.5">
@@ -192,6 +192,6 @@ export default function Wishes() {
           </div>
         </div>
       </Modal>
-    </div>
+    </Layout>
   );
 }
