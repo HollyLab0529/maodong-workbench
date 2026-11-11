@@ -31,6 +31,7 @@ const DEFAULT_DB = {
   sleeps: [],
   subs: [],
   trips: [],
+  wishes: [],
   recipes: [],
   _seq: {},
 };

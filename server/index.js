@@ -68,6 +68,7 @@ const COLLECTIONS = {
   subs: ["name", "amount", "cycle", "next_date", "status", "note", "auto_renew", "remind_days"],
   // 旅行
   trips: ["title", "place", "start_date", "end_date", "budget", "status", "note", "items"],
+  wishes: ["name", "type", "target", "link", "status", "note"],
   // 菜谱
   recipes: ["title", "type", "ingredients", "steps", "tags", "rating"],
 };
@@ -410,7 +411,7 @@ function publicUser(u) {
   } catch {
     modules = null;
   }
-  return { id: u.id, email: u.email, nickname: u.nickname || "", avatar: u.avatar || "", bio: u.bio || "", modules, is_owner: isOwner(u) };
+  return { id: u.id, email: u.email, nickname: u.nickname || "", avatar: u.avatar || "", bio: u.bio || "", modules, nav_groups: u.nav_groups || null, is_owner: isOwner(u) };
 }
 
 app.get("/api/auth/me", (req, res) => {
@@ -427,6 +428,18 @@ app.patch("/api/auth/profile", (req, res) => {
   const patch = {};
   if (b.nickname !== undefined) patch.nickname = String(b.nickname).slice(0, 24);
   if (b.bio !== undefined) patch.bio = String(b.bio).slice(0, 60);
+  if (b.nav_groups !== undefined) {
+    // 导航分组配置:[{name, modules:[模块id]}];服务端只做结构校验,语义由前端解析
+    let ok = false;
+    try {
+      const v = typeof b.nav_groups === "string" ? JSON.parse(b.nav_groups) : b.nav_groups;
+      if (Array.isArray(v) && v.every((g) => g && typeof g.name === "string" && g.name.length <= 12 && Array.isArray(g.modules))) {
+        patch.nav_groups = v.map((g) => ({ name: g.name.slice(0, 12), modules: g.modules.slice(0, 30).map(String) }));
+        ok = true;
+      }
+    } catch { /* 忽略非法值 */ }
+    if (!ok) return res.status(400).json({ error: "nav_groups 格式不合法" });
+  }
   if (b.avatar !== undefined) {
     const v = String(b.avatar);
     if (v && !/^\/uploads\/[\w.-]+$/.test(v)) return res.status(400).json({ error: "头像地址不合法" });
@@ -724,7 +737,7 @@ app.post("/api/fetch-meta", requireAuth, async (req, res) => {
 const API_COLLECTIONS = new Set([
   "kb_articles", "job_apps", "job_events", "todos", "expenses", "quick_notes", "note_tags",
   "interviews", "resumes", "offers", "anniversaries", "workouts", "habits",
-  "habit_logs", "books", "weights", "sleeps", "subs", "trips", "recipes", "ideas", "expiry_items", "accounts",
+  "habit_logs", "books", "weights", "sleeps", "subs", "trips", "recipes", "ideas", "expiry_items", "accounts", "wishes",
 ]);
 
 function apiCollParam(req, res) {
