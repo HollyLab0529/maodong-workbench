@@ -34,7 +34,7 @@ const SECRET = loadSecret();
 
 const COLLECTIONS = {
   kb_articles: ["title", "category", "tags", "content", "updated_at"],
-  job_apps: ["company", "position", "status", "note", "updated_at"],
+  job_apps: ["company", "position", "jd_code", "location", "business", "link", "applied_date", "resume_id", "status", "note", "updated_at"],
   job_events: ["app_id", "title", "event_date", "note"],
   todos: ["title", "priority", "due_date", "due_time", "location", "quadrant", "done", "repeat"],
   ideas: ["title", "detail", "status"],
@@ -42,6 +42,8 @@ const COLLECTIONS = {
   accounts: ["platform", "account", "password", "category", "url", "note"],
   expenses: ["amount", "category", "note", "spent_at"],
   quick_notes: ["ntype", "title", "tags", "content", "promoted"],
+  // 随笔记全局标签库（名称 + 排序，供卡片展示顺序与录入快捷选择）
+  note_tags: ["name", "sort"],
   settings: ["key", "value"],
   // 求职深水区
   interviews: ["app_id", "company", "round", "interview_date", "interviewers", "questions", "rating", "result", "summary"],
@@ -720,7 +722,7 @@ app.post("/api/fetch-meta", requireAuth, async (req, res) => {
 // ---------- 开放 API v1（Bearer 令牌，供脚本 / 快捷指令 / AI 调用） ----------
 // 可通过 API 访问的集合（白名单：不开放邀请码、系统设置等敏感数据）
 const API_COLLECTIONS = new Set([
-  "kb_articles", "job_apps", "job_events", "todos", "expenses", "quick_notes",
+  "kb_articles", "job_apps", "job_events", "todos", "expenses", "quick_notes", "note_tags",
   "interviews", "resumes", "offers", "anniversaries", "workouts", "habits",
   "habit_logs", "books", "weights", "sleeps", "subs", "trips", "recipes", "ideas", "expiry_items", "accounts",
 ]);
