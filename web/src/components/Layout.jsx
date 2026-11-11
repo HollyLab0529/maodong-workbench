@@ -15,6 +15,7 @@ import {
 import { useAuth } from "../auth";
 import { exportUrl } from "../api";
 import { resolveModules, resolveNavGroups } from "../modules";
+import { TONE_FG } from "../colors";
 import GlobalSearch from "./GlobalSearch";
 import CatLogo from "./CatLogo";
 import ThemePicker from "./ThemePicker";
@@ -217,9 +218,9 @@ export default function Layout({ children }) {
               ) : gi > 0 ? (
                 <div className="mx-3 mb-1 border-t border-slate-200/70" />
               ) : null}
-              {g.modules.map(({ title, to, icon: Icon }) => (
+              {g.modules.map(({ title, to, icon: Icon, tone }) => (
                 <NavLink key={to} to={to} end={to === "/"} title={title} className={navItemClass}>
-                  <Icon className="h-4 w-4 shrink-0" />
+                  <Icon className={`h-4 w-4 shrink-0 ${TONE_FG[tone] || ""} [[aria-current=page]_&]:text-white`} />
                   {!collapsed ? <span className="truncate">{title}</span> : null}
                 </NavLink>
               ))}

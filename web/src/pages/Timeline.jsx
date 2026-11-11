@@ -7,11 +7,11 @@ import { EmptyState, Loading } from "../components/ui";
 import { History, BookOpen, Target, CheckSquare, Wallet, StickyNote, Flag } from "lucide-react";
 
 const TYPE_STYLE = {
-  kb: { icon: BookOpen, label: "知识库", color: "bg-indigo-50 text-indigo-500", route: "/kb" },
-  job: { icon: Target, label: "求职", color: "bg-terracotta-50 text-terracotta-600", route: "/jobs" },
-  todo: { icon: CheckSquare, label: "待办", color: "bg-emerald-50 text-emerald-500", route: "/todos" },
-  expense: { icon: Wallet, label: "记账", color: "bg-amber-50 text-amber-500", route: "/expenses" },
-  note: { icon: StickyNote, label: "随笔记", color: "bg-sky-50 text-sky-500", route: "/notes" },
+  kb: { icon: BookOpen, label: "知识库", color: "tone-indigo", route: "/kb" },
+  job: { icon: Target, label: "求职", color: "tone-terracotta", route: "/jobs" },
+  todo: { icon: CheckSquare, label: "待办", color: "tone-green", route: "/todos" },
+  expense: { icon: Wallet, label: "记账", color: "tone-amber", route: "/expenses" },
+  note: { icon: StickyNote, label: "随笔记", color: "tone-pink", route: "/notes" },
 };
 
 function itemOf(type, row) {

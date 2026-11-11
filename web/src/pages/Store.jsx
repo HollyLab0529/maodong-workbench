@@ -8,8 +8,8 @@ import { Button, EmptyState, Input, toast } from "../components/ui";
 import { TONES } from "../colors";
 import { ArrowDown, ArrowUp, Check, Download, GripVertical, ListTree, Pin, Plus, RotateCcw, Trash2, Lightbulb } from "lucide-react";
 
-// 模块图标色调：tone → 色块类（与 colors.js TONES 对齐，terracotta 为品牌色）
-const ICON_CLS = { ...TONES, terracotta: "bg-terracotta-50 text-terracotta-600" };
+// 模块图标色调：tone → 色块类（colors.js TONES，莫兰迪灰调，terracotta 已并入）
+const ICON_CLS = TONES;
 
 export default function Store() {
   const { user, setUser } = useAuth();

@@ -276,3 +276,29 @@ h3 {
 @media (prefers-reduced-motion: reduce) {
   .page-enter { animation: none; }
 }
+
+/* ===== 莫兰迪色调（低饱和灰调）：全站 tone 体系统一取用 ===== */
+.tone-teal       { background-color:#e7ece7; color:#7c9484; }
+.tone-blue       { background-color:#e4eaef; color:#7a94a8; }
+.tone-purple     { background-color:#eae5ee; color:#90829f; }
+.tone-amber      { background-color:#f1eadc; color:#a6905f; }
+.tone-orange     { background-color:#f2e7de; color:#b07e5c; }
+.tone-rose       { background-color:#f1e4e2; color:#b07f78; }
+.tone-pink       { background-color:#f2e7e8; color:#b48a8c; }
+.tone-green      { background-color:#e8ecdf; color:#87946e; }
+.tone-indigo     { background-color:#e5e7ef; color:#8087a6; }
+.tone-slate      { background-color:#edecea; color:#8b8983; }
+.tone-terracotta { background-color:#f3e3da; color:#a85b41; }
+
+/* 只染前景色：侧栏图标等不带底色的场景 */
+.tone-fg-teal       { color:#7c9484; }
+.tone-fg-blue       { color:#7a94a8; }
+.tone-fg-purple     { color:#90829f; }
+.tone-fg-amber      { color:#a6905f; }
+.tone-fg-orange     { color:#b07e5c; }
+.tone-fg-rose       { color:#b07f78; }
+.tone-fg-pink       { color:#b48a8c; }
+.tone-fg-green      { color:#87946e; }
+.tone-fg-indigo     { color:#8087a6; }
+.tone-fg-slate      { color:#8b8983; }
+.tone-fg-terracotta { color:#a85b41; }

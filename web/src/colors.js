@@ -5,21 +5,24 @@ import { listRows } from "./api";
 
 export const JOB_STATUSES = ["待投递", "简历筛选", "投递中", "笔试", "一面", "二面", "三面", "HR面", "Offer", "结束"];
 
-// 色板注册表:tone 名 → 芯片样式。自定义状态/标签配色都从这里取
+// 色板注册表:tone 名 → 莫兰迪灰调芯片样式(index.css .tone-*)。自定义状态/标签配色都从这里取
 export const TONES = {
-  teal: "bg-teal-50 text-teal-600",
-  blue: "bg-blue-50 text-blue-600",
-  purple: "bg-purple-50 text-purple-600",
-  amber: "bg-amber-50 text-amber-600",
-  orange: "bg-orange-50 text-orange-600",
-  rose: "bg-rose-50 text-rose-600",
-  pink: "bg-pink-50 text-pink-600",
-  green: "bg-green-50 text-green-600",
-  indigo: "bg-indigo-50 text-indigo-600",
-  slate: "bg-slate-100 text-slate-500",
+  teal: "tone-teal",
+  blue: "tone-blue",
+  purple: "tone-purple",
+  amber: "tone-amber",
+  orange: "tone-orange",
+  rose: "tone-rose",
+  pink: "tone-pink",
+  green: "tone-green",
+  indigo: "tone-indigo",
+  slate: "tone-slate",
+  terracotta: "tone-terracotta",
 };
 export const TONE_NAMES = Object.keys(TONES);
 export const toneChip = (tone) => TONES[tone] || TONES.slate;
+// 只染前景色（侧栏图标等不带底色的场景）
+export const TONE_FG = Object.fromEntries(TONE_NAMES.map((t) => [t, `tone-fg-${t}`]));
 
 const JOB_DEFAULT_TONE = {
   待投递: "teal", 投递中: "blue", 笔试: "purple", 一面: "amber", 二面: "orange",
