@@ -5,7 +5,11 @@ import { api } from "../api";
 import { useAuth } from "../auth";
 import { MODULES, resolveModules, DEFAULT_GROUPS, UNGROUPED_IDS } from "../modules";
 import { Button, EmptyState, Input, toast } from "../components/ui";
+import { TONES } from "../colors";
 import { ArrowDown, ArrowUp, Check, Download, GripVertical, ListTree, Pin, Plus, RotateCcw, Trash2, Lightbulb } from "lucide-react";
+
+// 模块图标色调：tone → 色块类（与 colors.js TONES 对齐，terracotta 为品牌色）
+const ICON_CLS = { ...TONES, terracotta: "bg-terracotta-50 text-terracotta-600" };
 
 export default function Store() {
   const { user, setUser } = useAuth();
@@ -156,7 +160,7 @@ export default function Store() {
                 ) : (
                   <Pin className="h-4 w-4 shrink-0 text-terracotta-300" />
                 )}
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-terracotta-50 text-terracotta-600">
+                <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${ICON_CLS[m.tone] || ICON_CLS.terracotta}`}>
                   <m.icon className="h-4.5 w-4.5" />
                 </span>
                 <div className="min-w-0 flex-1">
@@ -265,7 +269,7 @@ export default function Store() {
               {storeModules.map((m) => (
                 <div key={m.id} className={`${card} flex flex-col`}>
                   <div className="mb-2 flex items-center gap-2">
-                    <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 text-slate-500">
+                    <span className={`flex h-8 w-8 items-center justify-center rounded-lg ${ICON_CLS[m.tone] || ICON_CLS.slate}`}>
                       <m.icon className="h-4 w-4" />
                     </span>
                     <p className="text-sm font-medium text-slate-800">{m.title}</p>
