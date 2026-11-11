@@ -39,7 +39,16 @@ export default function KnowledgeBase() {
   const [saving, setSaving] = useState(false);
   const [viewing, setViewing] = useState(null);
   const [uploading, setUploading] = useState(false);
+  const [catCustomOpen, setCatCustomOpen] = useState(false);
+  const [newCat, setNewCat] = useState("");
   const fileRef = useRef(null);
+
+  const confirmCustomCat = () => {
+    const c = newCat.trim();
+    if (c) setForm((f) => ({ ...f, category: c }));
+    setNewCat("");
+    setCatCustomOpen(false);
+  };
 
   const load = async () => {
     try {
@@ -156,6 +165,17 @@ export default function KnowledgeBase() {
 
   const catCount = (c) => (c === "全部" ? articles.length : articles.filter((a) => a.category === c).length);
 
+  // 动态分类：固定 5 类 + 文章里实际出现过的自定义分类（按使用次数排序）
+  const customCats = useMemo(() => {
+    const m = {};
+    articles.forEach((a) => {
+      const c = (a.category || "").trim();
+      if (c && !CATEGORIES.includes(c)) m[c] = (m[c] || 0) + 1;
+    });
+    return Object.keys(m).sort((x, y) => m[y] - m[x]);
+  }, [articles]);
+  const allCats = useMemo(() => [...CATEGORIES, ...customCats], [customCats]);
+
   const onPickImage = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -195,7 +215,7 @@ export default function KnowledgeBase() {
 
       <div className="mb-4 flex flex-col gap-3">
         <div className="flex flex-wrap items-center gap-2">
-          {["全部", ...CATEGORIES].map((c) => (
+          {["全部", ...allCats].map((c) => (
             <button
               key={c}
               onClick={() => setCat(c)}
@@ -273,7 +293,7 @@ export default function KnowledgeBase() {
           <div>
             <Label>分类</Label>
             <div className="flex flex-wrap gap-1.5">
-              {CATEGORIES.map((c) => (
+              {[...new Set([...allCats, form.category].filter(Boolean))].map((c) => (
                 <button
                   key={c}
                   onClick={() => setForm({ ...form, category: c })}
@@ -284,6 +304,28 @@ export default function KnowledgeBase() {
                   {c}
                 </button>
               ))}
+              {catCustomOpen ? (
+                <input
+                  autoFocus
+                  value={newCat}
+                  onChange={(e) => setNewCat(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") { e.preventDefault(); confirmCustomCat(); }
+                    if (e.key === "Escape") { setCatCustomOpen(false); setNewCat(""); }
+                  }}
+                  onBlur={confirmCustomCat}
+                  placeholder="新分类名，回车确认"
+                  className="w-36 rounded-full border border-terracotta-200 bg-white px-3 py-1 text-xs outline-none focus:border-terracotta-400"
+                />
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setCatCustomOpen(true)}
+                  className="rounded-full border border-dashed border-slate-300 px-3 py-1 text-xs text-slate-400 transition-colors hover:border-terracotta-300 hover:text-terracotta-600"
+                >
+                  ＋ 自定义
+                </button>
+              )}
             </div>
           </div>
           <div>
