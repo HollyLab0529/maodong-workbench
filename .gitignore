@@ -23,3 +23,6 @@ web/dist/
 # ===== 系统/编辑器 =====
 .DS_Store
 *.log
+scripts/sync_resumes.py
+deploy/deploy.local.sh
+deploy/workbench.service
