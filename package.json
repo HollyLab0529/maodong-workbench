@@ -2,7 +2,7 @@
   "name": "workbench",
   "version": "1.1.0",
   "private": true,
-  "description": "徐笑晗的个人工作台：知识库 / 求职进度 / 待办 / 记账 / 随笔记",
+  "description": "猫冬手帐：知识库 / 求职进度 / 待办 / 记账 / 随笔记",
   "main": "server/index.js",
   "scripts": {
     "start": "node server/index.js",

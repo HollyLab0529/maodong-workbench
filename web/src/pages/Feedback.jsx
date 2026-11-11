@@ -133,15 +133,17 @@ export default function Feedback() {
                   <div key={p.path} className="flex items-center gap-2 text-xs">
                     <code className="min-w-0 flex-1 truncate rounded bg-slate-50 px-2 py-1 font-mono text-slate-600">{p.path}</code>
                     <span className="shrink-0 text-slate-400">{p.c} 次浏览 · {p.u} 人</span>
-                    <a
-                      href={`https://www.hollylab.cloud${p.path}`}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="shrink-0 text-slate-300 transition-colors hover:text-terracotta-600"
-                      title="打开页面"
-                    >
-                      <ExternalLink className="h-3 w-3" />
-                    </a>
+                    {window.SITE_BASE ? (
+                      <a
+                        href={`${window.SITE_BASE}${p.path}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="shrink-0 text-slate-300 transition-colors hover:text-terracotta-600"
+                        title="打开页面"
+                      >
+                        <ExternalLink className="h-3 w-3" />
+                      </a>
+                    ) : null}
                   </div>
                 ))}
               </div>
