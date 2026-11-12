@@ -2,6 +2,12 @@
 
 本项目遵循 [语义化版本](https://semver.org/lang/zh-CN/)，格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)。
 
+## [1.1.1] - 2026-11-12
+
+### 新增
+- README 界面预览截图（求职看板 / 知识库 / 日历，均为演示数据）
+- ghcr.io 镜像自动构建：打 `v*` 标签即发布多架构镜像（amd64 + arm64），`docker run` 一条命令起服务
+
 ## [1.1.0] - 2026-11-12
 
 ### 新增
