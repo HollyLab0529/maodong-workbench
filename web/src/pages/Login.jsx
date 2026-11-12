@@ -10,6 +10,7 @@ export default function Login({ onLogin }) {
   const [password, setPassword] = useState("");
   const [invite, setInvite] = useState("");
   const [needInvite, setNeedInvite] = useState(false);
+  const [demo, setDemo] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [showPwd, setShowPwd] = useState(false);
@@ -17,7 +18,10 @@ export default function Login({ onLogin }) {
   useEffect(() => {
     api
       .config()
-      .then(({ needInvite }) => setNeedInvite(needInvite))
+      .then(({ needInvite, demo }) => {
+        setNeedInvite(needInvite);
+        setDemo(demo || null);
+      })
       .catch(() => setNeedInvite(false));
   }, []);
 
@@ -51,6 +55,23 @@ export default function Login({ onLogin }) {
         </div>
 
         <form onSubmit={submit} className="space-y-4 rounded-2xl border border-slate-200/70 bg-white/80 p-6 shadow-soft">
+          {demo ? (
+            <div className="rounded-xl border border-slate-200/70 bg-slate-50/80 p-3 text-xs leading-relaxed text-slate-500">
+              <p className="font-medium text-slate-700">这是在线演示站</p>
+              <p className="mt-1">演示数据每天 04:00 自动重置，随便点、随便改。</p>
+              <button
+                type="button"
+                onClick={() => {
+                  setEmail(demo.email);
+                  setPassword(demo.password);
+                  setError("");
+                }}
+                className="mt-2 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-600 transition-colors hover:border-terracotta-300 hover:text-terracotta-600"
+              >
+                填入演示账号
+              </button>
+            </div>
+          ) : null}
           <div>
             <Label>邮箱</Label>
             <Input
@@ -99,16 +120,18 @@ export default function Login({ onLogin }) {
           <Button type="submit" loading={loading} className="w-full" size="lg">
             {mode === "login" ? "登录" : "注册并进入"}
           </Button>
-          <button
-            type="button"
-            onClick={() => {
-              setMode(mode === "login" ? "register" : "login");
-              setError("");
-            }}
-            className="w-full text-center text-xs text-slate-400 transition-colors hover:text-terracotta-600"
-          >
-            {mode === "login" ? "没有账号？创建一个" : "已有账号？去登录"}
-          </button>
+          {demo ? null : (
+            <button
+              type="button"
+              onClick={() => {
+                setMode(mode === "login" ? "register" : "login");
+                setError("");
+              }}
+              className="w-full text-center text-xs text-slate-400 transition-colors hover:text-terracotta-600"
+            >
+              {mode === "login" ? "没有账号？创建一个" : "已有账号？去登录"}
+            </button>
+          )}
         </form>
         <p className="mt-6 text-center text-[11px] leading-relaxed text-slate-300">
           数据存在主人自己的服务器上，只属于每个账号

@@ -16,6 +16,11 @@ const {
 } = require("./store");
 
 const PORT = Number(process.env.PORT || 3031);
+// 演示站模式:禁注册、禁签发开放 API 令牌、写操作按 IP 限流(数据由外部脚本每天重置)
+const DEMO_MODE = process.env.DEMO_MODE === "1";
+const DEMO_EMAIL = String(process.env.DEMO_EMAIL || "demo@maodong.app").trim().toLowerCase();
+const DEMO_PASSWORD = String(process.env.DEMO_PASSWORD || "demo12345");
+const DEMO_WRITE_LIMIT = Number(process.env.DEMO_WRITE_LIMIT || 60); // 每 IP 每分钟写操作上限
 const PUBLIC_DIR = path.join(__dirname, "..", "public");
 const UPLOAD_DIR = path.join(DATA_DIR, "uploads");
 const SECRET_FILE = path.join(DATA_DIR, ".secret");
@@ -114,6 +119,30 @@ function currentUser(req) {
 const app = express();
 app.set("trust proxy", true);
 app.use(express.json({ limit: "2mb" }));
+
+// 演示站:按 IP 限制写操作频率,防止公开演示被批量灌数据
+if (DEMO_MODE) {
+  const hits = new Map(); // ip → { count, resetAt }
+  app.use("/api", (req, res, next) => {
+    if (["GET", "HEAD", "OPTIONS"].includes(req.method)) return next();
+    const ip = req.ip || req.socket.remoteAddress || "unknown";
+    const now = Date.now();
+    let rec = hits.get(ip);
+    if (!rec || now > rec.resetAt) {
+      if (hits.size > 5000) {
+        for (const [k, v] of hits) if (now > v.resetAt) hits.delete(k);
+      }
+      rec = { count: 0, resetAt: now + 60 * 1000 };
+      hits.set(ip, rec);
+    }
+    rec.count += 1;
+    if (rec.count > DEMO_WRITE_LIMIT) {
+      res.setHeader("Retry-After", String(Math.ceil((rec.resetAt - now) / 1000)));
+      return res.status(429).json({ error: "演示站点写入过于频繁，请稍后再试（数据每天 04:00 重置）" });
+    }
+    next();
+  });
+}
 
 function sha256(s) {
   return crypto.createHash("sha256").update(s).digest("hex");
@@ -285,6 +314,7 @@ app.get("/api/tokens", (req, res) => {
 });
 
 app.post("/api/tokens", (req, res) => {
+  if (DEMO_MODE) return res.status(403).json({ error: "演示站点不开放开放 API 令牌" });
   const user = currentUser(req);
   if (!user) return res.status(401).json({ error: "未登录" });
   const name = String((req.body || {}).name || "").trim().slice(0, 30) || "未命名令牌";
@@ -321,10 +351,12 @@ app.delete("/api/tokens/:id", (req, res) => {
 app.get("/api/auth/config", (req, res) => {
   // 是否需要邀请码：首个账号开放注册，之后需邀请码
   const need = read((db) => db.users.length > 0);
-  res.json({ needInvite: need });
+  const demo = DEMO_MODE ? { email: DEMO_EMAIL, password: DEMO_PASSWORD } : null;
+  res.json({ needInvite: need, demo });
 });
 
 app.post("/api/auth/register", async (req, res) => {
+  if (DEMO_MODE) return res.status(403).json({ error: "这是在线演示站，不开放注册；请用演示账号登录" });
   const email = String(req.body.email || "").trim().toLowerCase();
   const password = String(req.body.password || "");
   const invite = String(req.body.invite || "").trim();
