@@ -35,6 +35,9 @@ jobs:
           done
           exit $fail
 
+      - name: 单元与接口测试
+        run: npm test
+
       - name: 启动冒烟测试
         env:
           PORT: 3031
