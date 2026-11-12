@@ -31,6 +31,10 @@ function barChart(daily) {
   return { days: days.map((d) => d.slice(5)), vals, max };
 }
 
+// 作品集站点地址（可选）：构建时用 VITE_SITE_BASE 注入，未配置则不显示「打开页面」链接
+const SITE_BASE =
+  (typeof window !== "undefined" && window.SITE_BASE) || import.meta.env.VITE_SITE_BASE || "";
+
 export default function Feedback() {
   const [data, setData] = useState(null); // {ok, reason, stats, items, count}
   const [loading, setLoading] = useState(true);
@@ -133,9 +137,9 @@ export default function Feedback() {
                   <div key={p.path} className="flex items-center gap-2 text-xs">
                     <code className="min-w-0 flex-1 truncate rounded bg-slate-50 px-2 py-1 font-mono text-slate-600">{p.path}</code>
                     <span className="shrink-0 text-slate-400">{p.c} 次浏览 · {p.u} 人</span>
-                    {window.SITE_BASE ? (
+                    {SITE_BASE ? (
                       <a
-                        href={`${window.SITE_BASE}${p.path}`}
+                        href={`${SITE_BASE}${p.path}`}
                         target="_blank"
                         rel="noreferrer"
                         className="shrink-0 text-slate-300 transition-colors hover:text-terracotta-600"

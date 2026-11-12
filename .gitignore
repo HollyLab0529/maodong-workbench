@@ -1,4 +1,4 @@
-# ===== 数据与密钥(绝不入库)=====
+# ===== 数据与密钥（绝不入库）=====
 data/
 *.db
 *.sqlite
@@ -8,26 +8,26 @@ data/
 .workbench-token
 .env
 .env.*
+!.env.example
 
 # ===== 依赖 =====
 node_modules/
 web/node_modules/
 
-# ===== 构建产物(vite build 重新生成)=====
+# ===== 构建产物（vite build 重新生成）=====
 public/index.html
 public/assets/
-
-# ===== 构建中间缓存 =====
 web/.vite/
 web/dist/
 
-# ===== 系统/编辑器 =====
-.DS_Store
-*.log
-<<<<<<< HEAD
-scripts/sync_resumes.py
+# ===== 部署本地私有配置（含服务器 IP / 私钥路径）=====
 deploy/deploy.local.sh
 deploy/workbench.service
-=======
->>>>>>> dev
+
+# ===== 个人同步脚本（含本机路径，别人用不上）=====
 scripts/sync_portfolio_note.py
+scripts/sync_resumes.py
+
+# ===== 系统 / 编辑器 =====
+.DS_Store
+*.log
