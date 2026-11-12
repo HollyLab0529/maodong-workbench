@@ -1,0 +1,23 @@
+# 猫冬手帐 · docker compose 部署
+#
+#   docker compose up -d --build      # 首次启动 / 更新代码后重建
+#   docker compose logs -f            # 看日志
+#   docker compose down               # 停止（数据留在 ./data，不会丢）
+#
+# 数据目录 ./data 会挂载到容器内 /data：备份 = 直接拷走这个目录。
+# 想换端口改 ports 左边的数字即可（例如 "8080:3031"）。
+
+services:
+  workbench:
+    build: .
+    image: maodong-workbench:latest
+    container_name: workbench
+    restart: unless-stopped
+    ports:
+      - "3031:3031"
+    environment:
+      PORT: 3031
+      DATA_DIR: /data
+      # OWNER_EMAIL: you@example.com   # 指定「创作者」账号，用于查看全站灵感池
+    volumes:
+      - ./data:/data

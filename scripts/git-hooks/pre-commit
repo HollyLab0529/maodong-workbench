@@ -1,0 +1,49 @@
+#!/bin/zsh
+# 拦截敏感文件提交：data/、*.db、.env、令牌、deploy.local.sh
+# 放行：git reset HEAD <file> 移除暂存，或 WB_ALLOW_DATA=1 git commit ...（一次性明确放行）
+set -u
+cd "$(git rev-parse --show-toplevel)"
+
+RED="\033[31m[拦截]\033[0m"
+fail=0
+
+while IFS= read -r file; do
+  case "$file" in
+    data/*|*.db|*.sqlite|*.sqlite3)
+      echo "$RED 数据/库文件：$file"; fail=1 ;;
+    .env|.env.*)
+      if [[ "$file" != ".env.example" ]]; then
+        echo "$RED 环境变量文件：$file"; fail=1
+      fi ;;
+    .assistant-token|.workbench-token|*secret*|*credential*)
+      echo "$RED 疑似令牌文件：$file"; fail=1 ;;
+    deploy/deploy.local.sh)
+      echo "$RED 服务器部署配置（含 IP/密钥路径）：$file"; fail=1 ;;
+  esac
+done < <(git diff --cached --name-only --diff-filter=ACMR)
+
+# 已暂存内容中含敏感特征串的额外扫描（防改名提交；跳过 scripts 自身与 LICENSE）
+if (( fail == 0 )); then
+  while IFS= read -r file; do
+    case "$file" in scripts/*|LICENSE) continue ;; esac
+    hits=$(git diff --cached -U0 -- "$file" 2>/dev/null | grep -E '^\+' | grep -nE 'xuxiaohan|124\.222\.228\.104|workbench_key' | head -3)
+    if [[ -n "$hits" ]]; then
+      echo "$RED $file 暂存内容中出现敏感特征串："
+      echo "$hits"
+      fail=1
+    fi
+  done < <(git diff --cached --name-only --diff-filter=ACMR)
+fi
+
+if (( fail == 1 )); then
+  if [[ "${WB_ALLOW_DATA:-0}" == "1" ]]; then
+    echo "\033[33m[警告]\033[0m WB_ALLOW_DATA=1，本次放行 —— 请确认真的要提交这些内容。"
+    exit 0
+  fi
+  echo ""
+  echo "提交被拦截。处理方式："
+  echo "  git reset HEAD <file>            # 从暂存区移除"
+  echo "  WB_ALLOW_DATA=1 git commit ...   # 明确放行（慎用）"
+  exit 1
+fi
+exit 0
