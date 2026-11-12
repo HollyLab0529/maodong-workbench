@@ -31,7 +31,7 @@ jobs:
 
       - name: 元信息（标签与说明）
         id: meta
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@v6
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
