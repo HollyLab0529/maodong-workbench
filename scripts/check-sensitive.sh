@@ -17,7 +17,13 @@ PATTERNS=(
 
 FOUND=0
 for p in "${PATTERNS[@]}"; do
-  hits=$(git grep -I -i -E "$p" "$SHA" -- . ':(exclude)LICENSE' ':(exclude)scripts/' ':(exclude)AGENTS.md' ':(exclude)docs/DEPLOY.md' 2>/dev/null)
+  # demo 域名(hollylab\.cloud)本就要出现在 README 的演示入口里,只豁免该模式对 README;
+  # 其余模式(姓名/IP/密钥路径)对 README 仍然全量扫描
+  if [[ "$p" == 'hollylab\.cloud' ]]; then
+    hits=$(git grep -I -i -E "$p" "$SHA" -- . ':(exclude)LICENSE' ':(exclude)scripts/' ':(exclude)AGENTS.md' ':(exclude)docs/DEPLOY.md' ':(exclude)README.md' 2>/dev/null)
+  else
+    hits=$(git grep -I -i -E "$p" "$SHA" -- . ':(exclude)LICENSE' ':(exclude)scripts/' ':(exclude)AGENTS.md' ':(exclude)docs/DEPLOY.md' 2>/dev/null)
+  fi
   if [ -n "$hits" ]; then
     echo "❌ 检测到敏感信息 [$p]:"
     echo "$hits" | head -10
