@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import Layout, { PageHeader } from "../components/Layout";
 import { listRows, insertRow, updateRow, deleteRow, todayStr, api } from "../api";
 import { useLiveReload } from "../live";
@@ -261,6 +262,17 @@ export default function Todos() {
     setRepeat(t.repeat || "");
     setOpen(true);
   };
+
+  // 首页直达：/todos?id=xx 自动打开对应待办的编辑弹窗
+  const [sp, setSp] = useSearchParams();
+  useEffect(() => {
+    const id = sp.get("id");
+    if (!id || loading) return;
+    const t = todos.find((x) => String(x.id) === id);
+    if (t) openEdit(t);
+    setSp({}, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, todos]);
 
   const save = async () => {
     if (!title.trim()) return toast.error("请填写任务内容");

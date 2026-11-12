@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { PageHeader } from "../../components/Layout";
 import { listRows, insertRow, updateRow, deleteRow } from "../../api";
 import { useLiveReload } from "../../live";
@@ -50,6 +51,17 @@ export default function Board() {
     setEditingId(a.id);
     setFormOpen(true);
   };
+
+  // 首页直达：/jobs?id=xx 自动打开对应投递的详情面板
+  const [sp, setSp] = useSearchParams();
+  useEffect(() => {
+    const id = sp.get("id");
+    if (!id || loading) return;
+    const a = apps.find((x) => String(x.id) === id);
+    if (a) setDetail(a);
+    setSp({}, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, apps]);
 
   const save = async () => {
     if (!form.company.trim()) return toast.error("请填写公司名");
