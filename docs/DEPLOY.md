@@ -86,6 +86,29 @@ cd /opt/workbench && git pull && npm ci --omit=dev && (cd web && npm ci && npm r
 sudo systemctl restart workbench
 ```
 
+### A4. 从自己电脑一键部署 + 回滚（推荐）
+
+仓库带了部署/回滚脚本，在你自己的电脑上运行（不是服务器上）：
+
+```bash
+# 只需配一次（该文件已被 .gitignore 排除，不会入库）
+cat > deploy/deploy.local.sh <<'EOF'
+SERVER="root@你的服务器IP"
+KEY="$HOME/.ssh/你的密钥"
+REMOTE_DIR="/opt/workbench"
+EOF
+
+zsh deploy/deploy.sh                 # 备份 → 构建 → 上传 → 重启 → 健康检查
+zsh deploy/rollback.sh               # 列出可用备份
+zsh deploy/rollback.sh data          # 恢复最新备份的数据（当前数据会先另存）
+zsh deploy/rollback.sh code          # 回退代码与前端产物（不动数据）
+zsh deploy/rollback.sh all           # 全量回滚
+```
+
+- 每次部署前自动把服务器上的 `data/` 与 `public/` 打包到 `$REMOTE_DIR` 同级的 `workbench-backups/`
+- 保留最近 10 份（`KEEP_BACKUPS` 可调），备份含 `.secret` 与上传文件，**只留在服务器上，不进仓库**
+- 健康检查失败时脚本会直接打印对应的回滚命令；回滚前会把当前 `db.json` 另存到 `data/backups/prerollback-*.tgz`，回滚本身也可再撤销
+
 ---
 
 ## 线路 B：没有服务器
