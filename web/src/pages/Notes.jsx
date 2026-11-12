@@ -507,7 +507,7 @@ export default function Notes() {
       )}
 
       {/* 新建 / 编辑共用弹窗 */}
-      <Modal open={open} onClose={() => { setOpen(false); setEditing(null); }} title={editing ? "编辑笔记" : "记一条"}>
+      <Modal open={open} onClose={() => { setOpen(false); setEditing(null); }} title={editing ? "编辑笔记" : "记一条"} wide={ntype === "链接导航"}>
         <div className="space-y-4">
           <div>
             <Label>类型</Label>
@@ -533,7 +533,7 @@ export default function Notes() {
             <div key={fd.key}>
               <Label>{fd.label}</Label>
               {fd.multiline ? (
-                <Textarea value={fields[fd.key] || ""} onChange={(e) => setFields({ ...fields, [fd.key]: e.target.value })} rows={3} />
+                <Textarea value={fields[fd.key] || ""} onChange={(e) => setFields({ ...fields, [fd.key]: e.target.value })} rows={3} autoGrow />
               ) : (
                 <Input value={fields[fd.key] || ""} onChange={(e) => setFields({ ...fields, [fd.key]: e.target.value })} />
               )}
