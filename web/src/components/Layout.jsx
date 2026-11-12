@@ -157,6 +157,8 @@ export default function Layout({ children }) {
 
   // 底部 Tab：前 4 个高频模块 + 更多
   const tabNav = nav.slice(0, 4);
+  // 总览不进分组，单独在侧栏顶部渲染（core 模块，不可移除）
+  const coreNav = nav.filter((m) => m.core);
 
   const toolTile = `rounded-lg py-2 text-[10px] text-slate-400 transition-colors hover:bg-slate-100 hover:text-terracotta-600 ${
     collapsed ? "flex items-center justify-center" : "flex flex-col items-center gap-1"
@@ -211,13 +213,19 @@ export default function Layout({ children }) {
           {collapsed ? <PanelLeftOpen className="h-4 w-4" /> : <><PanelLeftClose className="h-4 w-4" /> 收起</>}
         </button>
         <nav className="flex flex-col gap-1 overflow-y-auto">
+          {coreNav.map(({ title, to, icon: Icon, tone }) => (
+            <NavLink key={to} to={to} end title={title} className={navItemClass}>
+              <Icon className={`h-4 w-4 shrink-0 ${TONE_FG[tone] || ""} [[aria-current=page]_&]:text-white`} />
+              {!collapsed ? <span className="truncate">{title}</span> : null}
+            </NavLink>
+          ))}
           {groups.map((g, gi) => (
-            <div key={g.name} className={gi > 0 && !collapsed ? "mt-3" : ""}>
+            <div key={g.name} className={!collapsed ? "mt-3" : ""}>
               {!collapsed ? (
                 <p className={`mb-1 px-3 text-[10px] font-medium uppercase tracking-wider ${g.rest ? "text-slate-300" : "text-slate-400"}`}>{g.name}</p>
-              ) : gi > 0 ? (
+              ) : (
                 <div className="mx-3 mb-1 border-t border-slate-200/70" />
-              ) : null}
+              )}
               {g.modules.map(({ title, to, icon: Icon, tone }) => (
                 <NavLink key={to} to={to} end={to === "/"} title={title} className={navItemClass}>
                   <Icon className={`h-4 w-4 shrink-0 ${TONE_FG[tone] || ""} [[aria-current=page]_&]:text-white`} />
