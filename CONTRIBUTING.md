@@ -18,13 +18,16 @@ PORT=3031 npm start                # 打开 http://localhost:3031
 
 ## 提交前自检
 
-CI 会跑同样的三步，本地先过一遍更快：
+CI 会跑同样的四步，本地先过一遍更快：
 
 ```bash
 cd web && npm run build && cd ..
 for f in $(find server -name '*.js'); do node --check "$f"; done
-DATA_DIR=$(mktemp -d) PORT=3031 node server/index.js &   # 冒烟：/api/health 返回 ok
+npm test                                                  # 12 个接口/安全用例，约 10s
+DATA_DIR=$(mktemp -d) PORT=3031 node server/index.js &    # 冒烟：/api/health 返回 ok
 ```
+
+新增接口或动到鉴权、字段白名单、导出时，请同步补 `test/api.test.js` 的用例。
 
 ## 代码约定
 

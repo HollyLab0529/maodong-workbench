@@ -33,7 +33,8 @@
     "start": "node server/index.js",
     "dev": "node server/index.js",
     "build": "cd web && npm ci && npm run build",
-    "check": "for f in $(find server -name '*.js'); do node --check \"$f\" || exit 1; done"
+    "check": "for f in $(find server -name '*.js'); do node --check \"$f\" || exit 1; done",
+    "test": "node --test test/api.test.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
