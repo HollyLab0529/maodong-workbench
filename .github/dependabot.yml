@@ -10,6 +10,10 @@ updates:
     groups:
       server-deps:
         patterns: ["*"]
+    # 大版本升级(如 express 4→5)可能包含破坏性变更,由维护者手动评估,不让 dependabot 静默提 PR
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: npm
     directory: "/web"
@@ -21,6 +25,9 @@ updates:
     groups:
       web-deps:
         patterns: ["*"]
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: github-actions
     directory: "/"
