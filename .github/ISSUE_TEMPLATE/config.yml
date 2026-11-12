@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 部署问题
+    url: https://github.com/HollyLab0529/maodong-workbench/blob/main/AGENTS.md
+    about: 跑不起来、端口冲突、HTTPS、数据备份——先看这份 runbook 的「常见失败与修复」
+  - name: 安全漏洞
+    url: https://github.com/HollyLab0529/maodong-workbench/security/advisories/new
+    about: 请走私密渠道，不要开公开 issue
