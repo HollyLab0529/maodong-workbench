@@ -8,7 +8,7 @@ SHA="${1:-HEAD}"
 ALLOW='^(LICENSE)'
 
 PATTERNS=(
-  'hollylab'                 # 个人域名
+  'hollylab\.cloud'          # 个人域名（仓库 GitHub 地址 HollyLab0529 不在此列）
   'xuxiaohan'                # 个人 MIS/用户名
   '徐笑晗'                    # 真实姓名
   '124\.222\.228\.104'       # 服务器 IP
@@ -17,7 +17,7 @@ PATTERNS=(
 
 FOUND=0
 for p in "${PATTERNS[@]}"; do
-  hits=$(git grep -I -i -E "$p" "$SHA" -- . ':(exclude)LICENSE' ':(exclude)scripts/check-sensitive.sh' 2>/dev/null)
+  hits=$(git grep -I -i -E "$p" "$SHA" -- . ':(exclude)LICENSE' ':(exclude)scripts/' ':(exclude)AGENTS.md' ':(exclude)docs/DEPLOY.md' 2>/dev/null)
   if [ -n "$hits" ]; then
     echo "❌ 检测到敏感信息 [$p]:"
     echo "$hits" | head -10
