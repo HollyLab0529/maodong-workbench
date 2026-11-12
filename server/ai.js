@@ -367,11 +367,12 @@ module.exports = function createAiRouter({ requireAuth, currentUser, read, DATA_
           role: "system",
           content:
             `今天是 ${today}。把用户的一句话解析为动作。只输出 JSON，不要围栏：\n` +
-            '{"action":"todo|note|expense|none","title":"标题(简短祈使句)","due_date":"YYYY-MM-DD 或省略","due_time":"HH:MM 或省略","priority":"low|medium|high","location":"任务地点(用户明确提到才填)","category":"支出分类","amount":数字,"spent_at":"YYYY-MM-DD","ntype":"灵感|踩坑|待整理","note":"补充"}\n' +
-            "规则：不确定 action 时用 none；金额必须正数；相对时间（明天/下周三/月底）换算成具体日期，提到几点（下午3点=15:00）填 due_time；地点只有用户明确提到（如「在图书馆」「去公司」）才填进 location；不要发明用户没说的字段。",
+            '{"action":"todo|note|expense|none","title":"标题(简短祈使句)","due_date":"YYYY-MM-DD 或省略","due_time":"HH:MM 或省略","priority":"low|medium|high","location":"任务地点(用户明确提到才填)","category":"支出分类","amount":数字,"spent_at":"YYYY-MM-DD","ntype":"灵感|踩坑|待整理","note":"补充","items":[{"name":"品名","category":"支出分类","amount":单件金额数字,"spent_at":"YYYY-MM-DD"}]}\n' +
+            "规则：不确定 action 时用 none；金额必须正数；相对时间（明天/下周三/月底）换算成具体日期，提到几点（下午3点=15:00）填 due_time；地点只有用户明确提到（如「在图书馆」「去公司」）才填进 location；支出分类只能从：餐饮/交通/购物/居住/娱乐/学习/医疗/人情/其他 里选；不要发明用户没说的字段。\n" +
+            "拆分规则：action=expense 且用户列了多件商品或多笔账（如购物清单、小票、编号列表）时，每件一条放进 items——name 填品名（不要序号），category 按该件商品的实际品类判断，amount 填单件金额，spent_at 填支出日期，此时外层不填 amount；只有一笔账时不用 items，直接填外层 amount/category/note。",
         },
         { role: "user", content: String(text) },
-      ], { temperature: 0, max_tokens: 300 });
+      ], { temperature: 0, max_tokens: 900 });
       const raw = chatContent(data).replace(/^```json?\s*|```\s*$/g, "");
       let parsed;
       try {
