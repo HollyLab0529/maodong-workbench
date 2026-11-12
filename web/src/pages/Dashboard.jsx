@@ -100,15 +100,15 @@ const CARD_DEFS = [
         ) : (
           <div className="space-y-2.5">
             {todayTodos.slice(0, 5).map((t) => (
-              <div key={t.id} className="flex items-center gap-2.5">
-                <Checkbox checked={false} onChange={() => toggleTodo(t)} />
-                <span className="flex-1 truncate text-sm text-slate-700">{t.title}</span>
+              <Link key={t.id} to={`/todos?id=${t.id}`} className="group -mx-1.5 flex items-center gap-2.5 rounded-lg px-1.5 py-0.5 transition-colors hover:bg-slate-100/80">
+                <span onClick={(e) => e.stopPropagation()}><Checkbox checked={false} onChange={() => toggleTodo(t)} /></span>
+                <span className="flex-1 truncate text-sm text-slate-700 transition-colors group-hover:text-terracotta-700">{t.title}</span>
                 {t.due_date < today ? (
                   <Badge className="bg-red-50 text-red-500">已过期</Badge>
                 ) : (
                   <span className="text-[11px] text-slate-400">{fmtDate(t.due_date)}</span>
                 )}
-              </div>
+              </Link>
             ))}
           </div>
         )}
@@ -125,15 +125,15 @@ const CARD_DEFS = [
         ) : (
           <div className="space-y-2.5">
             {jobs.slice(0, 4).map((j) => (
-              <div key={j.id} className="flex items-center justify-between gap-2">
-                <p className="truncate text-sm text-slate-700">
+              <Link key={j.id} to={`/jobs?id=${j.id}`} className="group -mx-1.5 flex items-center justify-between gap-2 rounded-lg px-1.5 py-0.5 transition-colors hover:bg-slate-100/80">
+                <p className="truncate text-sm text-slate-700 transition-colors group-hover:text-terracotta-700">
                   {j.company}
                   <span className="ml-1.5 text-xs text-slate-400">{j.position}</span>
                 </p>
                 <span className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] ${styleOf(j.status)}`}>
                   {j.status}
                 </span>
-              </div>
+              </Link>
             ))}
           </div>
         )}
@@ -150,10 +150,10 @@ const CARD_DEFS = [
         ) : (
           <div className="space-y-2.5">
             {kb.slice(0, 4).map((a) => (
-              <div key={a.id} className="flex items-center justify-between gap-2">
-                <p className="truncate text-sm text-slate-700">{a.title}</p>
+              <Link key={a.id} to={`/kb?id=${a.id}`} className="group -mx-1.5 flex items-center justify-between gap-2 rounded-lg px-1.5 py-0.5 transition-colors hover:bg-slate-100/80">
+                <p className="truncate text-sm text-slate-700 transition-colors group-hover:text-terracotta-700">{a.title}</p>
                 <Badge>{a.category}</Badge>
-              </div>
+              </Link>
             ))}
           </div>
         )}
@@ -170,10 +170,10 @@ const CARD_DEFS = [
         ) : (
           <div className="space-y-2.5">
             {notes.slice(0, 4).map((n) => (
-              <div key={n.id} className="flex items-center justify-between gap-2">
-                <p className="truncate text-sm text-slate-700">{n.title}</p>
+              <Link key={n.id} to={`/notes?id=${n.id}`} className="group -mx-1.5 flex items-center justify-between gap-2 rounded-lg px-1.5 py-0.5 transition-colors hover:bg-slate-100/80">
+                <p className="truncate text-sm text-slate-700 transition-colors group-hover:text-terracotta-700">{n.title}</p>
                 <span className="shrink-0 text-[11px] text-slate-400">{n.ntype}</span>
-              </div>
+              </Link>
             ))}
           </div>
         )}

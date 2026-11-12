@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import Layout, { PageHeader } from "../components/Layout";
 import MarkdownLite from "../components/MarkdownLite";
 import { listRows, insertRow, updateRow, deleteRow, fmtTime, uploadImage } from "../api";
@@ -107,6 +108,17 @@ export default function KnowledgeBase() {
     setAiResult(null);
     setFormOpen(true);
   };
+
+  // 首页直达：/kb?id=xx 自动打开对应文章阅读弹窗
+  const [sp, setSp] = useSearchParams();
+  useEffect(() => {
+    const id = sp.get("id");
+    if (!id || loading) return;
+    const a = articles.find((x) => String(x.id) === id);
+    if (a) setViewing(a);
+    setSp({}, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, articles]);
 
   // AI 摘要：基于正文生成标签，并弹出摘要预览
   const [aiBusy, setAiBusy] = useState(false);
