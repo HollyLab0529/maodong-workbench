@@ -47,11 +47,17 @@ npm start                                   # http://localhost:3031
 
 ## 部署方式
 
+两条路线,选一条:**有服务器**(VPS + 域名,systemd + nginx + HTTPS)或 **没有服务器**(Docker / PaaS / 内网穿透,只需挂持久卷)。详细逐步说明见 **[docs/DEPLOY.md](docs/DEPLOY.md)**;想让 AI Agent 代劳,直接把仓库 + **[AGENTS.md](AGENTS.md)** 交给它。
+
 | 方式 | 适合人群 | 说明 |
 |---|---|---|
 | 本地运行 | 想先试用 | 上面的快速开始即可,数据在本机 `data/` |
 | VPS + 系统服务 | 正式自托管 | `deploy/deploy.sh`(rsync + systemd 模板):先把 `SERVER` / `KEY` / `REMOTE_DIR` 写进 `deploy/deploy.local.sh`(已 gitignore),再 `zsh deploy/deploy.sh`;建议配 nginx 反代 + HTTPS |
+| Docker Compose | 有 Docker 环境 | `docker compose up -d --build`,数据挂载在 `./data` |
 | 一键 PaaS(Railway / Zeabur 等) | 没有服务器 | 注册即送子域名;**注意挂持久卷**,否则重新部署会丢 JSON 数据 |
+| 交给 AI Agent | 都不熟 | 见 `AGENTS.md`(验收标准、常见失败、回滚都写好了) |
+
+> 克隆后先跑 `zsh scripts/install-git-hooks.sh`,装上防泄密钩子(拦截 `data/`、令牌、服务器配置误提交)。
 
 ### 环境变量(可选)
 

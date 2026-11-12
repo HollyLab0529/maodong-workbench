@@ -1,0 +1,8 @@
+#!/bin/zsh
+# pre-push 钩子：推送 main 到公开仓库前强制跑敏感信息检查
+while read local_ref local_sha remote_ref remote_sha; do
+  [ "$local_ref" = "refs/heads/main" ] || continue
+  [ "$local_sha" = "0000000000000000000000000000000000000000" ] && continue
+  zsh scripts/check-sensitive.sh "$local_sha" || exit 1
+done
+exit 0
