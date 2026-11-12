@@ -1,8 +1,17 @@
 # 猫冬手帐 · Maodong Workbench
 
+[![CI](https://github.com/HollyLab0529/maodong-workbench/actions/workflows/ci.yml/badge.svg)](https://github.com/HollyLab0529/maodong-workbench/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Node](https://img.shields.io/badge/node-%3E%3D18-339933.svg)](https://nodejs.org)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
+
 > 一个自托管的个人生活 / 求职工作台。纯 Node + Express + JSON 文件存储,零外部服务依赖——`npm install && npm start` 就能跑,备份就是拷走一个目录。
 
-<!-- TODO: 截图(总览/求职看板/日历三张,裁掉地址栏) -->
+## 界面预览
+
+> 截图待补(现有数据都是真实个人内容,正在攒一套演示数据再截)。想先看实际样子:按下面「快速开始」跑起来只要三条命令。
+
+<!-- 补图时用:docs/screenshots/ 下放 dashboard.png / jobs.png / calendar.png,宽 1200,裁掉地址栏 -->
 
 ## 它是什么
 
@@ -36,14 +45,14 @@ curl -X POST http://localhost:3031/api/data/kb_articles \
 ## 快速开始
 
 ```bash
-git clone https://github.com/<you>/maodong-workbench.git
+git clone https://github.com/HollyLab0529/maodong-workbench.git
 cd maodong-workbench
 npm install
-(cd web && npm install && npm run build)   # 构建前端到 public/
-npm start                                   # http://localhost:3031
+npm run build          # 等价于 cd web && npm ci && npm run build，产物输出到 public/
+npm start              # http://localhost:3031
 ```
 
-<!-- TODO: 首次注册引导说明(视 SMTP/邀请码逻辑而定) -->
+首次打开会引导注册,第一个注册的账号自动成为「创作者」(可看全站灵感池),之后注册需要 8 位邀请码(在设置页生成)。
 
 ## 部署方式
 
@@ -78,9 +87,51 @@ npm start                                   # http://localhost:3031
 
 ## 技术栈
 
-- **后端**:Node 18+ / Express,JSON 文件存储(`data/db.json`),HMAC 签名的令牌鉴权,SSE 实时推送
+- **后端**:Node 18+ / Express,JSON 文件存储(`data/db.json`,串行写事务 + 原子落盘),HMAC 签名令牌鉴权,SSE 实时推送
 - **前端**:React 18 + Vite + Tailwind,五套主题配色 + 暗色模式,⌘K 全局搜索
 - **部署**:单进程单目录,无数据库依赖;Docker / systemd / PaaS 均可
+
+```mermaid
+flowchart LR
+  subgraph 浏览器
+    SPA[React SPA<br/>PWA · Service Worker]
+  end
+  subgraph 单个 Node 进程
+    EXP[Express<br/>静态资源 + /api]
+    AUTH[会话 / 令牌鉴权<br/>bcrypt + HMAC Cookie]
+    TX[store.tx 写事务<br/>串行 + 原子落盘]
+    SSE[SSE 广播<br/>多端实时刷新]
+  end
+  DATA[(data/db.json<br/>唯一有状态的东西)]
+  AGENT[AI 助手 / 脚本<br/>Bearer 令牌 → /api/v1]
+
+  SPA -->|fetch| EXP
+  EXP --> AUTH --> TX --> DATA
+  TX --> SSE --> SPA
+  AGENT -->|/api/v1| EXP
+```
+
+## 项目结构
+
+```
+server/     Express 入口与路由(index.js)、AI 解析(ai.js)、JSON 存储与写事务(store.js)
+web/        React + Vite 源码(npm run build 输出到仓库根的 public/)
+public/     前端构建产物,git 忽略,不构建就没有
+scripts/    敏感信息扫描、图标生成、git hooks 安装
+deploy/     deploy.sh(rsync 部署)、workbench.service.tpl(systemd 单元模板)
+ docs/      DEPLOY.md(两条部署线)
+data/       运行时数据,git 忽略 ★ 备份只需要它
+```
+
+## 文档索引
+
+| 文档 | 给谁看 |
+|---|---|
+| [docs/DEPLOY.md](docs/DEPLOY.md) | 人类部署：有服务器 / 没服务器两条线 |
+| [AGENTS.md](AGENTS.md) | AI Agent 部署：命令序列、验收标准、常见失败、回滚 |
+| [CONTRIBUTING.md](CONTRIBUTING.md) | 想提 PR：开发环境、代码约定、新增集合必改的三处 |
+| [SECURITY.md](SECURITY.md) | 报漏洞的私密渠道 + 已知安全边界 |
+| [CHANGELOG.md](CHANGELOG.md) | 版本变化 |
 
 ## License
 

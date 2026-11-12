@@ -1,0 +1,40 @@
+name: 功能建议
+description: 想要一个新模块、新能力，或觉得某处不好用
+labels: [enhancement]
+body:
+  - type: textarea
+    id: pain
+    attributes:
+      label: 你现在的痛点
+      description: 描述场景比描述方案更有用——我会想办法，不一定按你说的方案做
+      placeholder: 每次记完账还要手动汇总到别处，希望能按分类导出成表…
+    validations:
+      required: true
+
+  - type: textarea
+    id: idea
+    attributes:
+      label: 你想到的做法（可选）
+    validations:
+      required: false
+
+  - type: dropdown
+    id: scope
+    attributes:
+      label: 这属于
+      options:
+        - 新模块
+        - 现有模块的改进
+        - 部署 / 运维
+        - AI 助手接入
+        - 界面与观感
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: willing
+    attributes:
+      label: 你愿意参与吗
+      options:
+        - label: 我可以提 PR
+        - label: 我可以帮忙测试
