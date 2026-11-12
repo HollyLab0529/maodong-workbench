@@ -3,9 +3,10 @@ import { PageHeader } from "../../components/Layout";
 import { listRows, insertRow, updateRow, deleteRow, uploadImage, fmtTime } from "../../api";
 import { useLiveReload } from "../../live";
 import { Button, Input, Textarea, Label, Modal, Badge, EmptyState, Loading, toast } from "../../components/ui";
-import { Plus, Trash2, FileText, Paperclip, Loader2, CheckCircle2 } from "lucide-react";
+import { Plus, Trash2, FileText, Paperclip, Loader2, CheckCircle2, Folder, ChevronDown, ChevronRight } from "lucide-react";
 
-const EMPTY = { name: "", target_role: "", file_url: "", content: "", note: "" };
+const EMPTY = { name: "", target_role: "", file_url: "", content: "", note: "", folder: "" };
+const LOOSE = "未分组";
 
 export default function Resumes() {
   const [rows, setRows] = useState([]);
@@ -15,6 +16,7 @@ export default function Resumes() {
   const [editingId, setEditingId] = useState(null);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [collapsed, setCollapsed] = useState({});
   const fileRef = useRef(null);
 
   const load = async () => {
@@ -34,11 +36,30 @@ export default function Resumes() {
     [rows]
   );
 
+  // 按文件夹分组：未命名的归到「未分组」并排在最后；组内维持「在用优先 + 新版本在前」
+  const groups = useMemo(() => {
+    const map = new Map();
+    sorted.forEach((r) => {
+      const key = String(r.folder || "").trim() || LOOSE;
+      if (!map.has(key)) map.set(key, []);
+      map.get(key).push(r);
+    });
+    return [...map.entries()].sort((a, b) => {
+      const rank = (k) => (k === LOOSE ? 3 : /通用/.test(k) ? 0 : /其他/.test(k) ? 2 : 1);
+      return rank(a[0]) - rank(b[0]) || a[0].localeCompare(b[0], "zh-CN");
+    });
+  }, [sorted]);
+
+  const folders = useMemo(
+    () => [...new Set(rows.map((r) => String(r.folder || "").trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b, "zh-CN")),
+    [rows]
+  );
+
   const openNew = () => { setForm(EMPTY); setEditingId(null); setOpen(true); };
   const openEdit = (r) => {
     setForm({
       name: r.name || "", target_role: r.target_role || "", file_url: r.file_url || "",
-      content: r.content || "", note: r.note || "",
+      content: r.content || "", note: r.note || "", folder: r.folder || "",
     });
     setEditingId(r.id);
     setOpen(true);
@@ -71,6 +92,7 @@ export default function Resumes() {
         file_url: form.file_url,
         content: form.content,
         note: form.note.trim(),
+        folder: form.folder.trim(),
       };
       if (editingId) {
         await updateRow("resumes", editingId, payload);
@@ -121,8 +143,25 @@ export default function Resumes() {
       ) : sorted.length === 0 ? (
         <EmptyState icon={FileText} text="还没有简历版本，上传第一份吧（支持 PDF / Word）" />
       ) : (
-        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-          {sorted.map((r) => (
+        <div className="space-y-5">
+          {groups.map(([folder, list]) => {
+            const shut = !!collapsed[folder];
+            return (
+              <section key={folder}>
+                <button
+                  type="button"
+                  onClick={() => setCollapsed((c) => ({ ...c, [folder]: !c[folder] }))}
+                  className="mb-2 flex w-full items-center gap-2 rounded-lg px-1 py-1.5 text-left transition-colors hover:bg-slate-50"
+                >
+                  {shut ? <ChevronRight className="h-4 w-4 shrink-0 text-slate-400" /> : <ChevronDown className="h-4 w-4 shrink-0 text-slate-400" />}
+                  <Folder className="h-4 w-4 shrink-0 text-slate-400" />
+                  <span className="truncate text-sm font-medium text-slate-700">{folder}</span>
+                  <Badge>{list.length}</Badge>
+                  {list.some((r) => r.in_use) ? <span className="text-[11px] text-terracotta">含在用版本</span> : null}
+                </button>
+                {shut ? null : (
+                  <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                    {list.map((r) => (
             <div key={r.id} className={`group rounded-xl border p-4 transition-shadow hover:shadow-soft ${r.in_use ? "border-terracotta-200 bg-terracotta-50/40" : "border-slate-200/70 bg-white/80"}`}>
               <div className="mb-1.5 flex items-start justify-between gap-2">
                 <div className="min-w-0">
@@ -161,7 +200,12 @@ export default function Resumes() {
                 </div>
               </div>
             </div>
-          ))}
+                    ))}
+                  </div>
+                )}
+              </section>
+            );
+          })}
         </div>
       )}
 
@@ -176,6 +220,19 @@ export default function Resumes() {
               <Label>目标岗位（可选）</Label>
               <Input value={form.target_role} onChange={(e) => setForm({ ...form, target_role: e.target.value })} placeholder="如：AI 应用产品" />
             </div>
+          </div>
+          <div>
+            <Label>文件夹（可选）</Label>
+            <Input
+              list="resume-folder-options"
+              value={form.folder}
+              onChange={(e) => setForm({ ...form, folder: e.target.value })}
+              placeholder="如：定向版_剪映_AI产品经理；留空则归入未分组"
+            />
+            <datalist id="resume-folder-options">
+              {folders.map((f) => <option key={f} value={f} />)}
+            </datalist>
+            <p className="mt-1 text-[11px] text-slate-400">同一个文件夹的简历会摆在一起，投递某类岗位时不用到处翻。</p>
           </div>
           <div>
             <div className="mb-1.5 flex items-center justify-between">

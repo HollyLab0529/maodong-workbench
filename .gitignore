@@ -25,7 +25,6 @@ deploy/workbench.service
 
 # ===== 个人同步脚本（含本机路径，别人用不上）=====
 scripts/sync_portfolio_note.py
-scripts/sync_resumes.py
 
 # ===== 系统 / 编辑器 =====
 .DS_Store

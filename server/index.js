@@ -52,7 +52,7 @@ const COLLECTIONS = {
   settings: ["key", "value"],
   // 求职深水区
   interviews: ["app_id", "company", "round", "interview_date", "interviewers", "questions", "rating", "result", "summary"],
-  resumes: ["name", "target_role", "file_url", "content", "note", "in_use"],
+  resumes: ["name", "target_role", "file_url", "content", "note", "in_use", "folder"],
   offers: ["company", "position", "base_salary", "months", "sign_on", "equity", "commute", "team_score", "growth_score", "note", "status"],
   // 日历
   anniversaries: ["title", "date", "repeat", "note"],
