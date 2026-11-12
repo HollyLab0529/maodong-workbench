@@ -4,6 +4,7 @@
 [![Release](https://img.shields.io/github/v/release/HollyLab0529/maodong-workbench?display_name=tag)](https://github.com/HollyLab0529/maodong-workbench/releases)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Node](https://img.shields.io/badge/node-%3E%3D18-339933.svg)](https://nodejs.org)
+[![Live Demo](https://img.shields.io/badge/%F0%9F%8C%90-Live_Demo-9a5b53)](https://demo.workbench.hollylab.cloud)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 
 > 一个自托管的个人生活 / 求职工作台。纯 Node + Express + JSON 文件存储,零外部服务依赖——`npm install && npm start` 就能跑,备份就是拷走一个目录。
@@ -54,6 +55,8 @@ curl -X POST http://localhost:3031/api/data/kb_articles \
 
 ## 快速开始
 
+> 🌍 **在线演示**：[demo.workbench.hollylab.cloud](https://demo.workbench.hollylab.cloud) —— 账号 `demo@maodong.app` / 密码 `demo12345`（演示数据，每天凌晨 4 点自动重置）
+
 ```bash
 git clone https://github.com/HollyLab0529/maodong-workbench.git
 cd maodong-workbench
@@ -72,7 +75,7 @@ npm start              # http://localhost:3031
 |---|---|---|
 | 本地运行 | 想先试用 | 上面的快速开始即可,数据在本机 `data/` |
 | VPS + 系统服务 | 正式自托管 | `deploy/deploy.sh`(rsync + systemd 模板):先把 `SERVER` / `KEY` / `REMOTE_DIR` 写进 `deploy/deploy.local.sh`(已 gitignore),再 `zsh deploy/deploy.sh`;建议配 nginx 反代 + HTTPS |
-| Docker Compose | 有 Docker 环境 | `docker compose up -d --build`,数据挂载在 `./data`;或直接用现成镜像 `docker run -d -p 3031:3031 -v ./data:/data ghcr.io/hollylab0529/maodong-workbench:latest`(发版后可用) |
+| Docker Compose | 有 Docker 环境 | `docker compose up -d --build`,数据挂载在 `./data`;或直接用现成镜像 `docker run -d -p 3031:3031 -v ./data:/data ghcr.io/hollylab0529/maodong-workbench:latest` |
 | 一键 PaaS(Railway / Zeabur 等) | 没有服务器 | 注册即送子域名;**注意挂持久卷**,否则重新部署会丢 JSON 数据 |
 | 交给 AI Agent | 都不熟 | 见 `AGENTS.md`(验收标准、常见失败、回滚都写好了) |
 
