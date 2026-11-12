@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { X, Check, Loader2 } from "lucide-react";
 import CatMascot from "./CatMascot";
@@ -82,12 +82,28 @@ export function Input({ className = "", ...props }) {
   );
 }
 
-export function Textarea({ className = "", rows = 4, ...props }) {
+export function Textarea({ className = "", rows = 4, autoGrow = false, value, onInput, ...props }) {
+  const ref = useRef(null);
+  // autoGrow：随内容自动增高（最少 rows 行），长内容不用手动拖拽
+  const resize = () => {
+    const el = ref.current;
+    if (autoGrow && el) {
+      el.style.height = "auto";
+      el.style.height = `${el.scrollHeight}px`;
+    }
+  };
+  useEffect(resize, [value, autoGrow]);
   return (
     <textarea
-      rows={rows}
-      className={`w-full resize-y rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm leading-relaxed text-slate-800 placeholder:text-slate-300 focus:border-terracotta-400 focus:outline-none focus:ring-2 focus:ring-terracotta-100 ${className}`}
+      ref={ref}
+      rows={autoGrow ? 3 : rows}
+      className={`w-full resize-y overflow-hidden rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm leading-relaxed text-slate-800 placeholder:text-slate-300 focus:border-terracotta-400 focus:outline-none focus:ring-2 focus:ring-terracotta-100 ${className}`}
       {...props}
+      value={value}
+      onInput={(e) => {
+        resize();
+        onInput?.(e);
+      }}
     />
   );
 }
