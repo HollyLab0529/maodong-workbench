@@ -15,8 +15,7 @@ node_modules/
 web/node_modules/
 
 # ===== 构建产物（vite build 重新生成）=====
-public/index.html
-public/assets/
+public/
 web/.vite/
 web/dist/
 
