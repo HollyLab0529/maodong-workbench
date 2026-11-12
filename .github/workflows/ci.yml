@@ -1,0 +1,51 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build-and-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: 安装后端依赖
+        run: npm ci --omit=dev --no-audit --no-fund
+
+      - name: 安装并构建前端
+        run: |
+          cd web
+          npm ci --no-audit --no-fund
+          npm run build
+
+      - name: 服务端语法检查
+        run: |
+          fail=0
+          for f in $(find server -name '*.js'); do
+            node --check "$f" || { echo "语法错误: $f"; fail=1; }
+          done
+          exit $fail
+
+      - name: 启动冒烟测试
+        env:
+          PORT: 3031
+          DATA_DIR: ${{ runner.temp }}/data
+        run: |
+          node server/index.js &
+          for i in $(seq 1 30); do
+            if curl -sf http://127.0.0.1:3031/api/health; then ok=1; break; fi
+            sleep 1
+          done
+          if [ "${ok:-0}" != "1" ]; then echo "服务未在 30s 内就绪"; exit 1; fi
+          echo ""
+          curl -s http://127.0.0.1:3031/ | grep -q 'assets/index-' || { echo "首页未引用构建产物"; exit 1; }
+          echo "首页产物引用正常"

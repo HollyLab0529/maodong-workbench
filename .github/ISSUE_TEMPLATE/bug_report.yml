@@ -1,0 +1,64 @@
+name: Bug 报告
+description: 跑不起来、页面报错、数据异常
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        先自查一下，能省一轮往返：
+        - 依赖装了吗：`npm ci`（后端）与 `cd web && npm ci`（前端）
+        - 前端构建了吗：`cd web && npm run build`——没构建时首页会返回 503「前端尚未构建」
+        - 端口冲突：`lsof -i :3031`
+        - 常见失败对照表见 [AGENTS.md](https://github.com/HollyLab0529/maodong-workbench/blob/main/AGENTS.md#6-常见失败与修复)
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: 发生了什么
+      description: 现象 + 你期望的结果
+      placeholder: 点「新建文章」弹出空白框，控制台报 Cannot read properties of undefined…
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: 复现步骤
+      placeholder: |
+        1. 登录后进入 在线知识库
+        2. 点右上角「新建文章」
+        3. …
+    validations:
+      required: true
+
+  - type: dropdown
+    id: deploy
+    attributes:
+      label: 运行方式
+      options:
+        - 本地 npm start
+        - VPS + systemd / nginx
+        - Docker Compose
+        - PaaS（Railway / Zeabur 等）
+        - 其他
+    validations:
+      required: true
+
+  - type: input
+    id: env
+    attributes:
+      label: 环境
+      description: 系统 / Node 版本 / 浏览器
+      placeholder: macOS 15 · Node 20.11 · Chrome 131
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: 日志或截图
+      description: |
+        服务端输出、浏览器控制台报错、接口返回。**粘贴前请删掉真实姓名、域名、IP、令牌与个人数据。**
+      render: shell
+    validations:
+      required: false
