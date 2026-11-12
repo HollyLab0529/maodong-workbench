@@ -35,7 +35,35 @@ const NOTE_TYPES = [
   { type: "改动日志", icon: ScrollText, fields: [
     { key: "content", label: "本次改动", multiline: true },
   ]},
+  { type: "链接导航", icon: Link2, fields: [
+    { key: "content", label: "链接清单", multiline: true },
+  ]},
 ];
+
+// 把正文里的 URL 转成可点击链接（点击不冒泡，避免误开编辑弹窗）
+const URL_SPLIT_RE = /(https?:\/\/[^\s，,）)】\]]+)/g;
+function Linkify({ text }) {
+  return (
+    <>
+      {String(text).split(URL_SPLIT_RE).map((p, i) =>
+        /^https?:\/\/./.test(p) ? (
+          <a
+            key={i}
+            href={p}
+            target="_blank"
+            rel="noreferrer"
+            onClick={(e) => e.stopPropagation()}
+            className="break-all text-terracotta-600 underline hover:text-terracotta-700"
+          >
+            {p}
+          </a>
+        ) : (
+          <span key={i}>{p}</span>
+        )
+      )}
+    </>
+  );
+}
 
 // 类型配色：筛选、卡片徽标、左侧色条、图标四处统一
 const NOTE_TINT = {
@@ -45,6 +73,7 @@ const NOTE_TINT = {
   日常事务: { chip: "border-[#cfd8c2] bg-[#e8ecdf] text-[#6d7a50]", edge: "border-l-[#aebd93]", icon: "text-[#87946e]" },
   收藏链接: { chip: "border-[#e0cbc8] bg-[#f1e4e2] text-[#99625a]", edge: "border-l-[#ccaba6]", icon: "text-[#b07f78]" },
   改动日志: { chip: "border-[#d6d4ce] bg-[#edecea] text-[#6e6c66]", edge: "border-l-[#b5b2aa]", icon: "text-[#8b8983]" },
+  链接导航: { chip: "border-[#c3d6e8] bg-[#e2edf5] text-[#4f7191]", edge: "border-l-[#9fbfd6]", icon: "text-[#6f92ad]" },
 };
 const noteTint = (t) => NOTE_TINT[t] || NOTE_TINT["灵感想法"];
 
@@ -378,7 +407,7 @@ export default function Notes() {
                 key={n.id}
                 onClick={() => openEdit(n)}
                 title="点击展开编辑"
-                className={`group cursor-pointer rounded-xl border border-l-[3px] border-slate-200/70 ${noteTint(n.ntype).edge} bg-white/80 p-4 transition-shadow hover:shadow-md`}
+                className={`group cursor-pointer rounded-xl border border-l-[3px] border-slate-200/70 ${noteTint(n.ntype).edge} bg-white/80 p-4 transition-shadow hover:shadow-md${n.ntype === "链接导航" ? " md:col-span-2 xl:col-span-3" : ""}`}
               >
                 {cover ? (
                   <img
@@ -400,19 +429,26 @@ export default function Notes() {
                   {def.fields.map((fd) =>
                     f[fd.key] ? (
                       <p key={fd.key} className="whitespace-pre-line break-words text-xs leading-relaxed text-slate-500">
-                        <span className="text-slate-300">{fd.label}：</span>
                         {fd.key === "url" && /^https?:\/\//.test(f[fd.key]) ? (
-                          <a
-                            href={f[fd.key]}
-                            target="_blank"
-                            rel="noreferrer"
-                            onClick={(e) => e.stopPropagation()}
-                            className="break-all text-terracotta-600 underline"
-                          >
-                            {f[fd.key]}
-                          </a>
+                          <>
+                            <span className="text-slate-300">{fd.label}：</span>
+                            <a
+                              href={f[fd.key]}
+                              target="_blank"
+                              rel="noreferrer"
+                              onClick={(e) => e.stopPropagation()}
+                              className="break-all text-terracotta-600 underline"
+                            >
+                              {f[fd.key]}
+                            </a>
+                          </>
+                        ) : n.ntype === "链接导航" && fd.key === "content" ? (
+                          <Linkify text={f[fd.key]} />
                         ) : (
-                          String(f[fd.key]).slice(0, 260)
+                          <>
+                            <span className="text-slate-300">{fd.label}：</span>
+                            <Linkify text={String(f[fd.key]).slice(0, 260)} />
+                          </>
                         )}
                       </p>
                     ) : null
