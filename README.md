@@ -12,6 +12,9 @@
 
 <table>
   <tr>
+    <td width="100%"><img src="docs/screenshots/dashboard.png" alt="总览：今日焦点与各模块趋势" /></td>
+  </tr>
+  <tr>
     <td width="34%"><img src="docs/screenshots/jobs.png" alt="求职看板：投递流程与时间线" /></td>
     <td width="33%"><img src="docs/screenshots/kb.png" alt="在线知识库：分类配色与标签" /></td>
     <td width="33%"><img src="docs/screenshots/calendar.png" alt="日历：纪念日、待办与随记" /></td>

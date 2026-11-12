@@ -23,7 +23,7 @@ function StatCard({ icon: Icon, label, value, sub, to }) {
   return (
     <Link
       to={to}
-      className="group rounded-xl border border-slate-200/70 bg-white/80 p-4 transition-shadow hover:shadow-soft"
+      className="group block rounded-xl border border-slate-200/70 bg-white/80 p-4 transition-shadow hover:shadow-soft"
     >
       <div className="mb-2 flex items-center gap-2 text-slate-400">
         <Icon className="h-4 w-4" />
