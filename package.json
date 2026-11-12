@@ -1,6 +1,6 @@
 {
   "name": "maodong-workbench",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "private": true,
   "description": "猫冬手帐：自托管的个人生活 / 求职工作台。知识库、求职看板、待办四象限、记账、日历、习惯打卡……纯 Node + Express + JSON 文件存储，零外部服务依赖。",
   "main": "server/index.js",

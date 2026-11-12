@@ -99,7 +99,7 @@ function useDueReminder(todos) {
   }, [todos]);
 }
 
-function TodoRow({ t, today, titles, onMove, onToggle, onRemove }) {
+function TodoRow({ t, today, titles, onMove, onToggle, onRemove, onEdit }) {
   const [menu, setMenu] = useState(false);
   const cur = QUAD_KEYS.includes(t.quadrant) ? t.quadrant : "auto";
   return (
@@ -158,6 +158,9 @@ function TodoRow({ t, today, titles, onMove, onToggle, onRemove }) {
           </div>
         ) : null}
       </div>
+      <button onClick={() => onEdit(t)} title="编辑" className="text-slate-200 transition-colors hover:text-terracotta group-hover:text-slate-300">
+        <Pencil className="h-3.5 w-3.5" />
+      </button>
       <button onClick={() => onRemove(t)} className="text-slate-200 transition-colors hover:text-red-400 group-hover:text-slate-300">
         <Trash2 className="h-3.5 w-3.5" />
       </button>
@@ -170,6 +173,7 @@ export default function Todos() {
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState("matrix"); // matrix = 四象限 / list = 时间分组
   const [open, setOpen] = useState(false);
+  const [editing, setEditing] = useState(null); // 正在编辑的待办（null = 新建）
   const [title, setTitle] = useState("");
   const [priority, setPriority] = useState("中");
   const [dueDate, setDueDate] = useState("");
@@ -244,22 +248,42 @@ export default function Todos() {
   }, [todos, today, titles]);
   const doneTodos = useMemo(() => todos.filter((t) => t.done), [todos]);
 
+  const openNew = () => { setEditing(null); setTitle(""); setPriority("中"); setDueDate(""); setDueTime(""); setLocation(""); setQuad(""); setRepeat(""); setOpen(true); };
+  // 点条目的铅笔 → 预填弹窗编辑
+  const openEdit = (t) => {
+    setEditing(t);
+    setTitle(t.title || "");
+    setPriority(t.priority || "中");
+    setDueDate(t.due_date || "");
+    setDueTime(t.due_time || "");
+    setLocation(t.location || "");
+    setQuad(t.quadrant || "");
+    setRepeat(t.repeat || "");
+    setOpen(true);
+  };
+
   const save = async () => {
     if (!title.trim()) return toast.error("请填写任务内容");
     setSaving(true);
     try {
-      await insertRow("todos", {
+      const payload = {
         title: title.trim(),
         priority,
         due_date: dueDate,
         due_time: dueTime,
         location: location.trim(),
         quadrant: quad,
-        done: false,
         repeat,
-      });
-      toast.success("已添加");
+      };
+      if (editing) {
+        await updateRow("todos", editing.id, payload);
+        toast.success("已更新");
+      } else {
+        await insertRow("todos", { ...payload, done: false });
+        toast.success("已添加");
+      }
       setOpen(false);
+      setEditing(null);
       setTitle("");
       setDueDate("");
       setDueTime("");
@@ -398,7 +422,7 @@ export default function Todos() {
                 </button>
               ))}
             </div>
-            <Button onClick={() => setOpen(true)}><Plus className="h-4 w-4" /> 添加待办</Button>
+            <Button onClick={openNew}><Plus className="h-4 w-4" /> 添加待办</Button>
           </div>
         }
       />
@@ -441,7 +465,7 @@ export default function Todos() {
                 {q.items.length === 0 ? (
                   <p className="py-2 text-center text-[11px] text-slate-300">这一格空着，很清净</p>
                 ) : null}
-                {q.items.map((t) => <TodoRow key={t.id} t={t} today={today} titles={titles} onMove={moveTodo} onToggle={toggle} onRemove={remove} />)}
+                {q.items.map((t) => <TodoRow key={t.id} t={t} today={today} titles={titles} onMove={moveTodo} onToggle={toggle} onRemove={remove} onEdit={openEdit} />)}
                 {qAdd === q.key ? (
                   <div className="rounded-lg border border-terracotta-200 bg-white px-2.5 py-2">
                     <input
@@ -499,7 +523,7 @@ export default function Todos() {
                 {warn ? <Badge className="bg-red-50 text-red-500">需要关注</Badge> : null}
               </h2>
               <div className="space-y-1.5">
-                {items.map((t) => <TodoRow key={t.id} t={t} today={today} titles={titles} onMove={moveTodo} onToggle={toggle} onRemove={remove} />)}
+                {items.map((t) => <TodoRow key={t.id} t={t} today={today} titles={titles} onMove={moveTodo} onToggle={toggle} onRemove={remove} onEdit={openEdit} />)}
               </div>
             </div>
           )
@@ -512,7 +536,7 @@ export default function Todos() {
             已完成 <span className="font-normal">({doneTodos.length})</span>
           </summary>
           <div className="mt-2 space-y-1.5">
-            {doneTodos.map((t) => <TodoRow key={t.id} t={t} today={today} titles={titles} onMove={moveTodo} onToggle={toggle} onRemove={remove} />)}
+            {doneTodos.map((t) => <TodoRow key={t.id} t={t} today={today} titles={titles} onMove={moveTodo} onToggle={toggle} onRemove={remove} onEdit={openEdit} />)}
           </div>
         </details>
       ) : null}
@@ -521,7 +545,7 @@ export default function Todos() {
         <Bell className="h-3 w-3" /> 到期提醒通过浏览器通知发送（首次会请求通知权限）；同一账号多端登录时数据实时同步。
       </p>
 
-      <Modal open={open} onClose={() => setOpen(false)} title="添加待办">
+      <Modal open={open} onClose={() => { setOpen(false); setEditing(null); }} title={editing ? "编辑待办" : "添加待办"}>
         <div className="space-y-4">
           <div>
             <Label>任务内容</Label>
@@ -601,8 +625,8 @@ export default function Todos() {
             ) : null}
           </div>
           <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => setOpen(false)}>取消</Button>
-            <Button onClick={save} loading={saving}>添加</Button>
+            <Button variant="outline" onClick={() => { setOpen(false); setEditing(null); }}>取消</Button>
+            <Button onClick={save} loading={saving}>{editing ? "保存" : "添加"}</Button>
           </div>
         </div>
       </Modal>
