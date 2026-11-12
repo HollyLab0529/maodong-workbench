@@ -10,9 +10,15 @@
 
 ## 界面预览
 
-> 截图待补(现有数据都是真实个人内容,正在攒一套演示数据再截)。想先看实际样子:按下面「快速开始」跑起来只要三条命令。
+<table>
+  <tr>
+    <td width="34%"><img src="docs/screenshots/jobs.png" alt="求职看板：投递流程与时间线" /></td>
+    <td width="33%"><img src="docs/screenshots/kb.png" alt="在线知识库：分类配色与标签" /></td>
+    <td width="33%"><img src="docs/screenshots/calendar.png" alt="日历：纪念日、待办与随记" /></td>
+  </tr>
+</table>
 
-<!-- 补图时用:docs/screenshots/ 下放 dashboard.png / jobs.png / calendar.png,宽 1200,裁掉地址栏 -->
+> 图中均为演示数据。还有待办四象限、记账趋势、随笔记、模块超市等 20+ 模块，按下面「快速开始」三条命令就能看到自己的。
 
 ## 它是什么
 
@@ -63,7 +69,7 @@ npm start              # http://localhost:3031
 |---|---|---|
 | 本地运行 | 想先试用 | 上面的快速开始即可,数据在本机 `data/` |
 | VPS + 系统服务 | 正式自托管 | `deploy/deploy.sh`(rsync + systemd 模板):先把 `SERVER` / `KEY` / `REMOTE_DIR` 写进 `deploy/deploy.local.sh`(已 gitignore),再 `zsh deploy/deploy.sh`;建议配 nginx 反代 + HTTPS |
-| Docker Compose | 有 Docker 环境 | `docker compose up -d --build`,数据挂载在 `./data` |
+| Docker Compose | 有 Docker 环境 | `docker compose up -d --build`,数据挂载在 `./data`;或直接用现成镜像 `docker run -d -p 3031:3031 -v ./data:/data ghcr.io/hollylab0529/maodong-workbench:latest`(发版后可用) |
 | 一键 PaaS(Railway / Zeabur 等) | 没有服务器 | 注册即送子域名;**注意挂持久卷**,否则重新部署会丢 JSON 数据 |
 | 交给 AI Agent | 都不熟 | 见 `AGENTS.md`(验收标准、常见失败、回滚都写好了) |
 
