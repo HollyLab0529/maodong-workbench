@@ -24,4 +24,10 @@ web/dist/
 # ===== 系统/编辑器 =====
 .DS_Store
 *.log
+<<<<<<< HEAD
+scripts/sync_resumes.py
+deploy/deploy.local.sh
+deploy/workbench.service
+=======
+>>>>>>> dev
 scripts/sync_portfolio_note.py
