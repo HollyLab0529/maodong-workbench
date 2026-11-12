@@ -206,6 +206,15 @@ export default {
         xl: "0.9rem",
         "2xl": "1.15rem",
       },
+      // 全站字号整体上调一档（text-xs 12→13.5px、sm 14→15px…），提高可读性
+      fontSize: {
+        xs: ["0.84rem", { lineHeight: "1.3rem" }],
+        sm: ["0.94rem", { lineHeight: "1.4rem" }],
+        base: ["1.06rem", { lineHeight: "1.6rem" }],
+        lg: ["1.2rem", { lineHeight: "1.75rem" }],
+        xl: ["1.3rem", { lineHeight: "1.8rem" }],
+        "2xl": ["1.55rem", { lineHeight: "2rem" }],
+      },
       fontFamily: {
         sans: ["var(--font-sans)"],
         display: ["var(--font-display)"],

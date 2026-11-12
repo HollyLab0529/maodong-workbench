@@ -6,9 +6,9 @@ import { Button, Input, Label, Checkbox, Modal, Badge, EmptyState, Loading, toas
 import { Plus, Trash2, CalendarClock, Clock, MapPin, Repeat, Bell, Sparkles, Grid2x2, Pencil } from "lucide-react";
 
 const PRIORITY_STYLE = {
-  高: "bg-red-50 text-red-500",
-  中: "bg-amber-50 text-amber-600",
-  低: "bg-slate-100 text-slate-500",
+  高: "bg-red-50 text-red-600",
+  中: "bg-amber-50 text-amber-700",
+  低: "bg-slate-100 text-slate-600",
 };
 
 const REPEATS = [
@@ -105,30 +105,30 @@ function TodoRow({ t, today, titles, onMove, onToggle, onRemove, onEdit }) {
   return (
     <div className="group flex items-center gap-3 rounded-lg border border-slate-100 bg-white/80 px-3.5 py-2.5 transition-shadow hover:shadow-soft">
       <Checkbox checked={!!t.done} onChange={() => onToggle(t)} />
-      <span className={`flex-1 text-sm ${t.done ? "text-slate-300 line-through" : "text-slate-700"}`}>
+      <span className={`flex-1 font-medium ${t.done ? "text-slate-300 line-through" : "text-slate-800"}`}>
         {t.title}
       </span>
       {t.repeat ? (
-        <span className="hidden items-center gap-1 text-[11px] text-terracotta-500 sm:flex" title={`重复：${REPEAT_LABEL[t.repeat]}`}>
-          <Repeat className="h-3 w-3" /> {REPEAT_LABEL[t.repeat]}
+        <span className="hidden items-center gap-1 text-xs text-terracotta-500 sm:flex" title={`重复：${REPEAT_LABEL[t.repeat]}`}>
+          <Repeat className="h-3.5 w-3.5" /> {REPEAT_LABEL[t.repeat]}
         </span>
       ) : null}
       {t.due_date ? (
-        <span className={`hidden items-center gap-1 text-[11px] sm:flex ${!t.done && t.due_date < today ? "font-medium text-red-400" : "text-slate-400"}`}>
-          <CalendarClock className="h-3 w-3" /> {t.due_date}
+        <span className={`hidden items-center gap-1 text-xs sm:flex ${!t.done && t.due_date < today ? "font-medium text-red-500" : "text-slate-600"}`}>
+          <CalendarClock className="h-3.5 w-3.5" /> {t.due_date}
         </span>
       ) : null}
       {t.due_time ? (
-        <span className={`hidden items-center gap-1 text-[11px] sm:flex ${!t.done && t.due_date && t.due_date <= today ? "font-medium text-red-400" : "text-slate-400"}`}>
-          <Clock className="h-3 w-3" /> {t.due_time}
+        <span className={`hidden items-center gap-1 text-xs sm:flex ${!t.done && t.due_date && t.due_date <= today ? "font-medium text-red-500" : "text-slate-600"}`}>
+          <Clock className="h-3.5 w-3.5" /> {t.due_time}
         </span>
       ) : null}
       {t.location ? (
-        <span className="hidden max-w-[10rem] items-center gap-1 truncate text-[11px] text-slate-400 sm:flex" title={t.location}>
-          <MapPin className="h-3 w-3 shrink-0" /> {t.location}
+        <span className="hidden max-w-[10rem] items-center gap-1 truncate text-xs text-slate-600 sm:flex" title={t.location}>
+          <MapPin className="h-3.5 w-3.5 shrink-0" /> {t.location}
         </span>
       ) : null}
-      <span className={`rounded-full px-2 py-0.5 text-[11px] ${PRIORITY_STYLE[t.priority] || PRIORITY_STYLE["低"]}`}>
+      <span className={`rounded-full px-2 py-0.5 text-xs ${PRIORITY_STYLE[t.priority] || PRIORITY_STYLE["低"]}`}>
         {t.priority}
       </span>
       <div className="relative">
@@ -141,7 +141,7 @@ function TodoRow({ t, today, titles, onMove, onToggle, onRemove, onEdit }) {
         </button>
         {menu ? (
           <div onMouseLeave={() => setMenu(false)} className="absolute right-0 top-7 z-30 w-36 rounded-lg border border-slate-100 bg-white p-1 shadow-lg">
-            <p className="px-2 pb-1 pt-0.5 text-[10px] text-slate-400">放进哪个格子</p>
+            <p className="px-2 pb-1 pt-0.5 text-xs text-slate-500">放进哪个格子</p>
             {["", ...QUAD_KEYS].map((q) => {
               const val = q || "auto";
               const label = q ? (titles[q] || QUAD_DEFAULT[q]) : "自动推断";
@@ -449,9 +449,9 @@ export default function Todos() {
           <div className="mb-2 flex justify-end">
             <button
               onClick={() => { setTitlesDraft(titles); setEditTitles(true); }}
-              className="flex items-center gap-1 text-[11px] text-slate-400 transition-colors hover:text-terracotta"
+              className="flex items-center gap-1 text-xs text-slate-500 transition-colors hover:text-terracotta"
             >
-              <Pencil className="h-3 w-3" /> 改格子名
+              <Pencil className="h-3.5 w-3.5" /> 改格子名
             </button>
           </div>
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
@@ -459,11 +459,11 @@ export default function Todos() {
             <div key={q.key} className={`rounded-xl border p-3.5 ${q.cls}`}>
               <div className="mb-2.5 flex items-center justify-between">
                 <h2 className={`text-xs font-semibold ${q.head}`}>{q.title}</h2>
-                <span className="text-[11px] text-slate-400">{q.tip} · {q.items.length}</span>
+                <span className="text-xs text-slate-500">{q.tip} · {q.items.length}</span>
               </div>
               <div className="space-y-1.5">
                 {q.items.length === 0 ? (
-                  <p className="py-2 text-center text-[11px] text-slate-300">这一格空着，很清净</p>
+                  <p className="py-2 text-center text-xs text-slate-400">这一格空着，很清净</p>
                 ) : null}
                 {q.items.map((t) => <TodoRow key={t.id} t={t} today={today} titles={titles} onMove={moveTodo} onToggle={toggle} onRemove={remove} onEdit={openEdit} />)}
                 {qAdd === q.key ? (
@@ -485,15 +485,15 @@ export default function Todos() {
                           <button
                             key={p}
                             onClick={() => setQPri(p)}
-                            className={`rounded px-1.5 py-0.5 text-[10px] ${qPri === p ? "bg-terracotta text-white" : "bg-slate-100 text-slate-500 hover:bg-slate-200"}`}
+                            className={`rounded px-1.5 py-0.5 text-xs ${qPri === p ? "bg-terracotta text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}
                           >
                             {p}
                           </button>
                         ))}
                       </div>
                       <div className="flex items-center gap-2">
-                        <button onClick={() => { setQAdd(""); setQTitle(""); }} className="text-[11px] text-slate-400 hover:text-slate-600">取消</button>
-                        <button onClick={() => addQuick(q.key)} disabled={qSaving} className="text-[11px] font-medium text-terracotta disabled:opacity-50">
+                        <button onClick={() => { setQAdd(""); setQTitle(""); }} className="text-xs text-slate-500 hover:text-slate-700">取消</button>
+                        <button onClick={() => addQuick(q.key)} disabled={qSaving} className="text-xs font-medium text-terracotta disabled:opacity-50">
                           {qSaving ? "保存中…" : "保存"}
                         </button>
                       </div>
@@ -502,7 +502,7 @@ export default function Todos() {
                 ) : (
                   <button
                     onClick={() => { setQAdd(q.key); setQTitle(""); }}
-                    className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-slate-200/80 py-1.5 text-[11px] text-slate-400 transition-colors hover:border-terracotta-300 hover:bg-white/60 hover:text-terracotta"
+                    className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-slate-300/80 py-1.5 text-xs text-slate-500 transition-colors hover:border-terracotta-300 hover:bg-white/60 hover:text-terracotta"
                   >
                     <Plus className="h-3 w-3" /> 加一条
                   </button>
@@ -541,7 +541,7 @@ export default function Todos() {
         </details>
       ) : null}
 
-      <p className="flex items-center gap-1.5 text-[11px] text-slate-300">
+      <p className="flex items-center gap-1.5 text-xs text-slate-400">
         <Bell className="h-3 w-3" /> 到期提醒通过浏览器通知发送（首次会请求通知权限）；同一账号多端登录时数据实时同步。
       </p>
 
@@ -619,7 +619,7 @@ export default function Todos() {
               ))}
             </div>
             {repeat ? (
-              <p className="mt-1.5 text-[11px] text-slate-400">
+              <p className="mt-1.5 text-xs text-slate-500">
                 完成后会自动生成下一期（截止日期按{REPEAT_LABEL[repeat]}顺延，需先设置截止日期）。
               </p>
             ) : null}
@@ -643,7 +643,7 @@ export default function Todos() {
               />
             </div>
           ))}
-          <p className="text-[11px] text-slate-400">留空恢复默认名字；只是换个说法，格子的位置和颜色不变。</p>
+          <p className="text-xs text-slate-500">留空恢复默认名字；只是换个说法，格子的位置和颜色不变。</p>
           <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={() => setEditTitles(false)}>取消</Button>
             <Button onClick={saveTitles}>保存</Button>
