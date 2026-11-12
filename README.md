@@ -1,6 +1,7 @@
 # 猫冬手帐 · Maodong Workbench
 
 [![CI](https://github.com/HollyLab0529/maodong-workbench/actions/workflows/ci.yml/badge.svg)](https://github.com/HollyLab0529/maodong-workbench/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/HollyLab0529/maodong-workbench?display_name=tag)](https://github.com/HollyLab0529/maodong-workbench/releases)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Node](https://img.shields.io/badge/node-%3E%3D18-339933.svg)](https://nodejs.org)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
