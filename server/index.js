@@ -973,9 +973,23 @@ app.use("/api/ai", require("./ai")({ requireAuth, currentUser, read, DATA_DIR, S
 
 // ---------- 静态资源 ----------
 if (fs.existsSync(PUBLIC_DIR)) {
-  app.use(express.static(PUBLIC_DIR, { index: "index.html", maxAge: "1h" }));
+  // 带内容 hash 的资源可长缓存；HTML 必须每次回源校验，
+  // 否则部署后浏览器还拿旧 index.html 去加载已删除的旧 chunk，页面打不开
+  app.use(
+    express.static(PUBLIC_DIR, {
+      index: "index.html",
+      setHeaders(res, filePath) {
+        if (filePath.endsWith(".html") || filePath === path.join(PUBLIC_DIR, "index.html")) {
+          res.setHeader("Cache-Control", "no-cache");
+        } else {
+          res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+        }
+      },
+    })
+  );
   app.get("*", (req, res, next) => {
     if (req.path.startsWith("/api/") || req.path.startsWith("/uploads/")) return next();
+    res.setHeader("Cache-Control", "no-cache");
     res.sendFile(path.join(PUBLIC_DIR, "index.html"));
   });
 } else {
