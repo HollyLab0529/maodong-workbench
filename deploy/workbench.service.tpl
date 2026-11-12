@@ -1,5 +1,5 @@
 [Unit]
-Description=徐笑晗的个人工作台 (workbench)
+Description=Maodong Workbench (猫冬手帐)
 After=network.target
 
 [Service]
@@ -7,7 +7,7 @@ Type=simple
 User=root
 WorkingDirectory=/opt/workbench
 ExecStart=/usr/local/bin/node /opt/workbench/server/index.js
-Environment=PORT=3031
+Environment=PORT=__PORT__
 Environment=DATA_DIR=/opt/workbench/data
 Restart=always
 RestartSec=3
