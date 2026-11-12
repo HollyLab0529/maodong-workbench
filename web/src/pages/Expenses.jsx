@@ -147,21 +147,45 @@ export default function Expenses() {
     }
   };
 
-  // 一句话记账：AI 解析后预填弹窗，确认后保存
+  // 一句话记账：单笔 → AI 预填弹窗确认；多件（购物清单）→ 拆成逐笔直接记入
   const quickAdd = async () => {
     const t = aiText.trim();
     if (!t) return;
     setAiBusy(true);
     try {
       const r = await api.aiParse(t);
-      if (r.action !== "expense" || !(Number(r.amount) > 0)) {
+      if (r.action !== "expense") {
         toast.error("没识别出支出信息，试试“昨天打车 23 块”这样的说法");
         return;
       }
-      setAmount(String(r.amount));
-      if (r.category && CATEGORIES.includes(r.category)) setCategory(r.category);
-      setSpentAt(r.spent_at || today);
-      setNote(r.note || t);
+      // 多件商品：逐条记入（name 做备注，分类/日期可各不相同）
+      const items = (Array.isArray(r.items) ? r.items : [])
+        .map((it) => ({
+          amount: Number(it.amount),
+          category: CATEGORIES.includes(it.category) ? it.category : "购物",
+          note: it.name || "AI 拆分",
+          spent_at: /^\d{4}-\d{2}-\d{2}$/.test(it.spent_at || "") ? it.spent_at : today,
+        }))
+        .filter((it) => it.amount > 0);
+      if (items.length > 1) {
+        for (const it of items) await insertRow("expenses", it);
+        const total = items.reduce((s, it) => s + it.amount, 0);
+        toast.success(`已拆成 ${items.length} 笔记入，合计 ¥${total.toFixed(2)}`);
+        setAiText("");
+        load();
+        return;
+      }
+      // 单笔（含 items 只有一件的情形）：走弹窗确认
+      const single = items[0];
+      const amount = single ? single.amount : Number(r.amount);
+      if (!(amount > 0)) {
+        toast.error("没识别出支出信息，试试“昨天打车 23 块”这样的说法");
+        return;
+      }
+      setAmount(String(amount));
+      setCategory(single ? single.category : CATEGORIES.includes(r.category) ? r.category : "餐饮");
+      setSpentAt(single ? single.spent_at : r.spent_at || today);
+      setNote(single ? single.note : r.note || t);
       setOpen(true);
       setAiText("");
     } catch (e) {
