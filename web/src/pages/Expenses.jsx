@@ -5,13 +5,14 @@ import { useLiveReload } from "../live";
 import { Button, Input, Label, Modal, EmptyState, Loading, toast } from "../components/ui";
 import { Plus, Trash2, Wallet, TrendingUp, PiggyBank, Sparkles } from "lucide-react";
 
-const CATEGORIES = ["餐饮", "交通", "购物", "居住", "娱乐", "学习", "医疗", "人情", "其他"];
+const CATEGORIES = ["餐饮", "交通", "购物", "居住", "娱乐", "学习", "医疗", "人情", "其他", "心愿达成"];
 const CAT_COLORS = {
   餐饮: "bg-orange-400",
   交通: "bg-blue-400",
   购物: "bg-pink-400",
   居住: "bg-emerald-400",
   娱乐: "bg-purple-400",
+  心愿达成: "bg-green-500",
   学习: "bg-indigo-400",
   医疗: "bg-red-400",
   人情: "bg-amber-400",
