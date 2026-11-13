@@ -11,12 +11,13 @@ import { Plus, Search, BookOpen, Pencil, Trash2, ImagePlus, Loader2, Sparkles, D
 import { downloadText, safeName } from "../download";
 import { tagChip, useTagColors } from "../colors";
 
-const CATEGORIES = ["技术学习", "求职经验", "项目复盘", "工具技巧", "其他"];
+const CATEGORIES = ["技术学习", "求职经验", "工作方法", "项目复盘", "工具技巧", "其他"];
 
 // 分类配色：列表、筛选、详情三处统一，扫一眼就能区分板块
 const CAT_TINT = {
   技术学习: { chip: "border-[#c9d8e2] bg-[#e4eaef] text-[#5f7d92]", edge: "border-l-[#a3bccd]" },
   求职经验: { chip: "border-[#e3d9c2] bg-[#f1eadc] text-[#8a7444]", edge: "border-l-[#c9b98d]" },
+  工作方法: { chip: "border-[#e5cbbf] bg-[#f3e2d9] text-[#a3694f]", edge: "border-l-[#d9b7a5]" },
   项目复盘: { chip: "border-[#d6cddf] bg-[#eae5ee] text-[#7a6b8c]", edge: "border-l-[#b7a9c6]" },
   工具技巧: { chip: "border-[#cfd8c2] bg-[#e8ecdf] text-[#6d7a50]", edge: "border-l-[#aebd93]" },
   其他: { chip: "border-[#d6d4ce] bg-[#edecea] text-[#6e6c66]", edge: "border-l-[#b5b2aa]" },
