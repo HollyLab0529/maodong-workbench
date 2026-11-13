@@ -32,7 +32,7 @@ ssh_run() { ssh -i "$KEY" -o BatchMode=yes "$SERVER" "$@"; }
 echo "==> 1/5 备份服务器数据与当前产物…"
 ssh_run "mkdir -p $BACKUP_DIR && cd $REMOTE_DIR \
   && tar czf $BACKUP_DIR/deploy-$TS.tgz data \$( [ -d public ] && echo public ) \
-  && (git config --global --replace-all safe.directory $REMOTE_DIR 2>/dev/null; git rev-parse HEAD > $BACKUP_DIR/deploy-$TS.sha 2>/dev/null || echo unknown > $BACKUP_DIR/deploy-$TS.sha) \
+  && (git config --global --get-all safe.directory | grep -qx \"$REMOTE_DIR\" || git config --global --add safe.directory $REMOTE_DIR 2>/dev/null; git rev-parse HEAD > $BACKUP_DIR/deploy-$TS.sha 2>/dev/null || echo unknown > $BACKUP_DIR/deploy-$TS.sha) \
   && (ls -1t $BACKUP_DIR/deploy-*.tgz 2>/dev/null | tail -n +$((KEEP_BACKUPS+1)) | while read f; do rm -f \"\$f\" \"\${f%.tgz}.sha\"; done)"
 echo "    备份: $BACKUP_DIR/deploy-$TS.tgz"
 
