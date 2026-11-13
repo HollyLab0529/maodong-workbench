@@ -27,6 +27,16 @@ const moneyOf = (target) => {
   return /^\d+(\.\d+)?$/.test(m) ? parseFloat(m) : 0;
 };
 
+// 从自动支出的备注里反解出心愿名（「心愿拿下:名称（链接）」→ 名称）
+const wishNameOfExpense = (note) => {
+  const s = String(note || "");
+  if (!s.startsWith("心愿拿下:")) return null;
+  let n = s.slice(5);
+  const i = n.lastIndexOf("（");
+  if (i > 0) n = n.slice(0, i);
+  return n.trim();
+};
+
 // 标记「已拿下」时自动记一笔支出到记账
 const recordDoneExpense = async (r) => {
   const amt = moneyOf(r.target);
@@ -81,16 +91,21 @@ export default function Wishes() {
           .filter((r) => r.status === s && (filterType === "全部" || r.type === filterType))
           .sort((a, b) => String(b.created_at || "").localeCompare(String(a.created_at || "")));
         const sum = items.reduce((t, r) => t + moneyOf(r.target), 0);
-        return { s, items, sum, ...QUAD_META[s] };
+        // 已拿下格：按自动记账口径算实际已花（按备注里的心愿名匹配本格条目）
+        const names = new Set(items.map((i) => i.name));
+        const spent = s === "已拿下"
+          ? expenses.reduce((t, e) => t + (names.has(wishNameOfExpense(e.note)) ? Number(e.amount || 0) : 0), 0)
+          : 0;
+        return { s, items, sum, spent, ...QUAD_META[s] };
       }),
-    [rows, filterType]
+    [rows, filterType, expenses]
   );
 
   const openNew = () => { setEditing(null); setForm(EMPTY); setModalOpen(true); };
-  // 从某一格点「详细填写」：预置该格状态（类型沿用当前筛选）
-  const openNewIn = (status) => {
+  // 从某一格点「详细填写」：预置该格状态 + 格内已敲的名字（不打断思路），类型沿用当前筛选
+  const openNewIn = (status, presetName = "") => {
     setEditing(null);
-    setForm({ ...EMPTY, status, type: filterType === "全部" ? EMPTY.type : filterType });
+    setForm({ ...EMPTY, name: presetName.trim(), status, type: filterType === "全部" ? EMPTY.type : filterType });
     setModalOpen(true);
     setQAdd("");
     setQName("");
@@ -137,6 +152,18 @@ export default function Wishes() {
       if (editing) {
         setRows((l) => l.map((r) => (r.id === editing.id ? { ...r, ...payload } : r)));
         await updateRow("wishes", editing.id, payload);
+        // 从「已拿下」改回其他状态：问一句要不要把自动记的那笔支出也删掉
+        if (editing.status === "已拿下" && payload.status !== "已拿下") {
+          const hits = expenses.filter((e) => wishNameOfExpense(e.note) === payload.name);
+          if (hits.length) {
+            const total = hits.reduce((t, e) => t + Number(e.amount || 0), 0);
+            const money = total % 1 ? total.toFixed(2) : String(total);
+            if (window.confirm(`心愿改回「${payload.status}」，要把自动记的那 ${hits.length} 笔支出（共 ¥${money}）也删掉吗？\n\n确定 = 删掉，取消 = 保留支出`)) {
+              for (const h of hits) { try { await deleteRow("expenses", h.id); } catch { /* 单条失败不影响 */ } }
+              setExpenses(await listRows("expenses"));
+            }
+          }
+        }
       } else {
         const { row } = await insertRow("wishes", payload);
         setRows((l) => [row || { ...payload, id: Math.random() }, ...l]);
@@ -231,7 +258,10 @@ export default function Wishes() {
             <div className="mb-2.5 flex items-center justify-between">
               <h2 className={`text-xs font-semibold ${q.head}`}>{q.s}</h2>
               <span className="text-[11px] text-slate-400">
-                {q.tip} · {q.items.length}{q.sum > 0 ? ` · 约 ¥${q.sum % 1 ? q.sum.toFixed(2) : q.sum}` : ""}
+                {q.tip} · {q.items.length}
+                {q.s === "已拿下"
+                  ? q.spent > 0 ? ` · 已花 ¥${q.spent % 1 ? q.spent.toFixed(2) : q.spent}` : ""
+                  : q.sum > 0 ? ` · 约 ¥${q.sum % 1 ? q.sum.toFixed(2) : q.sum}` : ""}
               </span>
             </div>
             <div className="space-y-1.5">
@@ -286,7 +316,7 @@ export default function Wishes() {
                     className="w-full bg-transparent text-sm text-slate-700 outline-none placeholder:text-slate-300"
                   />
                   <div className="mt-1.5 flex items-center justify-between">
-                    <button onClick={() => openNewIn(q.s)} className="text-[11px] text-slate-500 hover:text-terracotta">
+                    <button onClick={() => openNewIn(q.s, qName)} className="text-[11px] text-slate-500 hover:text-terracotta">
                       详细填写（预算 / 链接）
                     </button>
                     <div className="flex items-center gap-2">
