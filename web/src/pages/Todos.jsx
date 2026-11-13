@@ -4,6 +4,7 @@ import Layout, { PageHeader } from "../components/Layout";
 import { listRows, insertRow, updateRow, deleteRow, todayStr, api } from "../api";
 import { useLiveReload } from "../live";
 import { Button, Input, Label, Checkbox, Modal, Badge, EmptyState, Loading, toast } from "../components/ui";
+import { useQuadLayout, quadStyle, quadClass, ResizeHandle } from "../components/QuadGrid";
 import { Plus, Trash2, CalendarClock, Clock, MapPin, Repeat, Bell, Sparkles, Grid2x2, Pencil } from "lucide-react";
 
 const PRIORITY_STYLE = {
@@ -194,6 +195,9 @@ export default function Todos() {
   const [qTitle, setQTitle] = useState("");
   const [qPri, setQPri] = useState("中");
   const [qSaving, setQSaving] = useState(false);
+  // 四宫格尺寸（可拖右下角调宽/高，存 settings）
+  const gridRef = useRef(null);
+  const { sizes, startResize, resetSize } = useQuadLayout("todo_quad_layout");
   const today = todayStr();
 
   const load = async () => {
@@ -466,9 +470,10 @@ export default function Todos() {
               <Pencil className="h-3.5 w-3.5" /> 改格子名
             </button>
           </div>
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+          <div ref={gridRef} className="flex flex-wrap gap-3">
           {quadrants.map((q) => (
-            <div key={q.key} className={`rounded-xl border p-3.5 ${q.cls}`}>
+            <div key={q.key} className={`group ${quadClass}`} style={quadStyle(sizes[q.key])}>
+            <div className={`rounded-xl border p-3.5 ${q.cls}`}>
               <div className="mb-2.5 flex items-center justify-between">
                 <h2 className={`text-xs font-semibold ${q.head}`}>{q.title}</h2>
                 <span className="text-xs text-slate-500">{q.tip} · {q.items.length}</span>
@@ -520,6 +525,8 @@ export default function Todos() {
                   </button>
                 )}
               </div>
+            </div>
+            <ResizeHandle onPointerDown={(e) => startResize(e, q.key, gridRef.current)} onDoubleClick={() => resetSize(q.key)} />
             </div>
           ))}
           </div>

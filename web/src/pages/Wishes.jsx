@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useState } from "react";
-import { Gift, Plus, Trash2, Pencil, Link2, Check, Loader2 } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Plus, Trash2, Pencil, Link2, Check, Loader2 } from "lucide-react";
 import { listRows, insertRow, updateRow, deleteRow, todayStr } from "../api";
 import { Button, Input, Label, Modal, toast } from "../components/ui";
+import { useQuadLayout, quadStyle, quadClass, ResizeHandle } from "../components/QuadGrid";
 import { toneChip } from "../colors";
 import Layout, { PageHeader } from "../components/Layout";
 
@@ -52,6 +53,12 @@ export default function Wishes() {
   const [form, setForm] = useState(EMPTY);
   const [editing, setEditing] = useState(null);
   const [saving, setSaving] = useState(false);
+  // 格内就地新增：qAdd = 展开的那个格子（状态名）
+  const [qAdd, setQAdd] = useState("");
+  const [qName, setQName] = useState("");
+  const [qSaving, setQSaving] = useState(false);
+  const gridRef = useRef(null);
+  const { sizes, startResize, resetSize } = useQuadLayout("wishes_quad_layout");
 
   const load = async () => {
     try {
@@ -80,6 +87,36 @@ export default function Wishes() {
   );
 
   const openNew = () => { setEditing(null); setForm(EMPTY); setModalOpen(true); };
+  // 从某一格点「详细填写」：预置该格状态（类型沿用当前筛选）
+  const openNewIn = (status) => {
+    setEditing(null);
+    setForm({ ...EMPTY, status, type: filterType === "全部" ? EMPTY.type : filterType });
+    setModalOpen(true);
+    setQAdd("");
+    setQName("");
+  };
+
+  // 格内回车即存：只填名称，状态取该格
+  const addQuickWish = async (status) => {
+    const name = qName.trim();
+    if (!name) return toast.error("先写上心愿名称");
+    setQSaving(true);
+    try {
+      const payload = {
+        name, type: filterType === "全部" ? EMPTY.type : filterType,
+        target: "", link: "", status, note: "",
+      };
+      const { row } = await insertRow("wishes", payload);
+      setRows((l) => [row || { ...payload, id: Math.random() }, ...l]);
+      setQAdd("");
+      setQName("");
+      toast.success(status === "已拿下" ? "已记下并标为已拿下 🎉" : "心愿已记下，早日拿下！");
+    } catch (e) {
+      toast.error("保存失败:" + e.message);
+    } finally {
+      setQSaving(false);
+    }
+  };
   const openEdit = (r) => {
     setEditing(r);
     setForm({
@@ -186,15 +223,11 @@ export default function Wishes() {
 
       {loading ? (
         <div className="flex justify-center py-16 text-slate-400"><Loader2 className="h-6 w-6 animate-spin" /></div>
-      ) : rows.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-slate-200 py-16 text-center text-sm text-slate-400">
-          <Gift className="mx-auto mb-2 h-8 w-8 text-slate-300" />
-          还没有心愿,点右上角「记个心愿」开始攒
-        </div>
       ) : (
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+      <div ref={gridRef} className="flex flex-wrap gap-3">
         {quadrants.map((q) => (
-          <div key={q.s} className={`rounded-xl border p-3.5 ${q.cls}`}>
+          <div key={q.s} className={`group ${quadClass}`} style={quadStyle(sizes[q.s])}>
+          <div className={`rounded-xl border p-3.5 ${q.cls}`}>
             <div className="mb-2.5 flex items-center justify-between">
               <h2 className={`text-xs font-semibold ${q.head}`}>{q.s}</h2>
               <span className="text-[11px] text-slate-400">
@@ -238,7 +271,43 @@ export default function Wishes() {
                   有 {missingDone.length} 条已拿下的心愿还没记进记账，点这里一键补记
                 </button>
               ) : null}
+              {/* 格内就地新增：点一下就在这格里输入，回车保存 */}
+              {qAdd === q.s ? (
+                <div className="rounded-lg border border-terracotta-200 bg-white px-2.5 py-2">
+                  <input
+                    autoFocus
+                    value={qName}
+                    onChange={(e) => setQName(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") addQuickWish(q.s);
+                      if (e.key === "Escape") { setQAdd(""); setQName(""); }
+                    }}
+                    placeholder={`加到「${q.s}」，回车保存`}
+                    className="w-full bg-transparent text-sm text-slate-700 outline-none placeholder:text-slate-300"
+                  />
+                  <div className="mt-1.5 flex items-center justify-between">
+                    <button onClick={() => openNewIn(q.s)} className="text-[11px] text-slate-500 hover:text-terracotta">
+                      详细填写（预算 / 链接）
+                    </button>
+                    <div className="flex items-center gap-2">
+                      <button onClick={() => { setQAdd(""); setQName(""); }} className="text-xs text-slate-500 hover:text-slate-700">取消</button>
+                      <button onClick={() => addQuickWish(q.s)} disabled={qSaving} className="text-xs font-medium text-terracotta disabled:opacity-50">
+                        {qSaving ? "保存中…" : "保存"}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  onClick={() => { setQAdd(q.s); setQName(""); }}
+                  className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-slate-300/80 py-1.5 text-xs text-slate-500 transition-colors hover:border-terracotta-300 hover:bg-white/60 hover:text-terracotta"
+                >
+                  <Plus className="h-3 w-3" /> 加一个心愿
+                </button>
+              )}
             </div>
+          </div>
+          <ResizeHandle onPointerDown={(e) => startResize(e, q.s, gridRef.current)} onDoubleClick={() => resetSize(q.s)} />
           </div>
         ))}
       </div>
