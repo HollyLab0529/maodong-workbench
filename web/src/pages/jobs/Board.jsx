@@ -261,8 +261,11 @@ export default function Board() {
     }
   };
 
+  const [evSaving, setEvSaving] = useState(false);
   const addEvent = async () => {
+    if (evSaving) return; // 防双击重复提交（曾同一秒写入两条相同记录）
     if (!ev.title.trim()) return toast.error("请填写进展内容");
+    setEvSaving(true);
     try {
       await insertRow("job_events", {
         app_id: detail.id,
@@ -274,6 +277,8 @@ export default function Board() {
       openDetail(detail);
     } catch (e) {
       toast.error("保存失败：" + e.message);
+    } finally {
+      setEvSaving(false);
     }
   };
 

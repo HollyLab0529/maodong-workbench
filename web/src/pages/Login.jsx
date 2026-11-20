@@ -2,7 +2,15 @@ import { useEffect, useState } from "react";
 import { api } from "../api";
 import CatLogo from "../components/CatLogo";
 import { Button, Input, Label } from "../components/ui";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, BookOpen, Target, Wallet, StickyNote, Server } from "lucide-react";
+
+// 演示站左侧品牌区：桌面端两栏布局，让首屏不再是「一张卡片飘在空底色上」
+const DEMO_FEATURES = [
+  { icon: BookOpen, title: "知识库", desc: "思路和复盘随手记，写完能搜" },
+  { icon: Target, title: "求职看板", desc: "投了哪家、走到哪一步，一眼看清" },
+  { icon: Wallet, title: "记账", desc: "这个月花了多少，不用翻记录" },
+  { icon: StickyNote, title: "随笔记", desc: "想法先扔进来，回头慢慢理" },
+];
 
 export default function Login({ onLogin }) {
   const [mode, setMode] = useState("login");
@@ -44,9 +52,33 @@ export default function Login({ onLogin }) {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center px-4">
-      <div className="w-full max-w-sm">
-        <div className="mb-8 flex flex-col items-center">
+    <div className="flex min-h-screen items-center justify-center px-4 py-10">
+      <div className="flex w-full max-w-4xl flex-col items-center gap-10 md:flex-row md:items-center md:gap-14">
+        {demo ? (
+          <div className="hidden flex-1 md:block">
+            <CatLogo size={64} className="mb-4 drop-shadow-sm" />
+            <h1 className="font-display text-3xl font-semibold text-slate-900">猫冬手帐</h1>
+            <p className="mt-2 text-sm leading-relaxed text-slate-500">
+              一个放在自己服务器上的个人手帐，数据只属于每个账号。
+            </p>
+            <div className="mt-8 grid grid-cols-2 gap-x-6 gap-y-5">
+              {DEMO_FEATURES.map(({ icon: Icon, title, desc }) => (
+                <div key={title}>
+                  <p className="flex items-center gap-2 text-sm font-semibold text-slate-800">
+                    <Icon className="h-4 w-4 text-terracotta-500" /> {title}
+                  </p>
+                  <p className="mt-1 text-xs leading-relaxed text-slate-400">{desc}</p>
+                </div>
+              ))}
+            </div>
+            <p className="mt-8 flex items-center gap-1.5 text-[11px] text-slate-400">
+              <Server className="h-3.5 w-3.5" /> 数据存在主人自己的服务器上，只属于每个账号
+            </p>
+          </div>
+        ) : null}
+
+        <div className="w-full max-w-sm">
+        <div className="mb-8 flex flex-col items-center md:hidden">
           <CatLogo size={56} className="mb-3 drop-shadow-sm" />
           <h1 className="text-lg font-semibold text-slate-900">猫冬手帐</h1>
           <p className="mt-1 text-xs text-slate-400">
@@ -133,9 +165,10 @@ export default function Login({ onLogin }) {
             </button>
           )}
         </form>
-        <p className="mt-6 text-center text-[11px] leading-relaxed text-slate-300">
+        <p className="mt-6 text-center text-[11px] leading-relaxed text-slate-300 md:hidden">
           数据存在主人自己的服务器上，只属于每个账号
         </p>
+        </div>
       </div>
     </div>
   );
