@@ -13,6 +13,21 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="猫冬手帐" />
     <script>
+      // 懒加载的代码分块在站点重建后 hash 会变，开着旧页面点导航会拉不到旧文件。
+      // Vite 加载失败会派发 vite:preloadError，这里刷新一次拿新页面；
+      // 用 sessionStorage 记录，避免新页面仍失败时陷入刷新循环。
+      window.addEventListener("vite:preloadError", function (e) {
+        e.preventDefault();
+        var key = "wb-preload-reload";
+        if (sessionStorage.getItem(key)) return;
+        sessionStorage.setItem(key, String(Date.now()));
+        location.reload();
+      });
+      window.addEventListener("load", function () {
+        sessionStorage.removeItem("wb-preload-reload");
+      });
+    </script>
+    <script>
       // 挂在子路径（作品集里的 /demo/ 反代）时，接口仍按根路径写，这里补前缀。
       // 根路径部署时 prefix 为空，行为完全不变。
       (function () {
