@@ -217,7 +217,7 @@ export default function Calendar() {
           ) : null}
 
           {/* 月历卡片 */}
-          <div className="rounded-2xl border border-slate-200/70 bg-white/80 p-4 shadow-soft md:p-5">
+          <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-soft md:p-5">
             <div className="mb-4 flex items-center justify-between">
               <button onClick={() => shift(-1)} className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-terracotta-600">
                 <ChevronLeft className="h-5 w-5" />

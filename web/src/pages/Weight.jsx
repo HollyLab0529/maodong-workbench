@@ -106,14 +106,14 @@ export default function Weight() {
       ) : (
         <div className="space-y-5">
           <div className="grid grid-cols-3 gap-3">
-            <div className="rounded-xl border border-slate-200/70 bg-white/80 p-4 text-center">
+            <div className="rounded-xl border border-slate-200 bg-white p-4 text-center">
               <p className="text-2xl font-semibold text-slate-900">
                 {stats.latest.weight}
                 <span className="ml-0.5 text-xs font-normal text-slate-400">kg</span>
               </p>
               <p className="text-[11px] text-slate-400">最新 · {stats.latest.date.slice(5)}</p>
             </div>
-            <div className="rounded-xl border border-slate-200/70 bg-white/80 p-4 text-center">
+            <div className="rounded-xl border border-slate-200 bg-white p-4 text-center">
               <p className={`text-2xl font-semibold ${stats.diff < 0 ? "text-green-600" : stats.diff > 0 ? "text-terracotta-600" : "text-slate-900"}`}>
                 {stats.diff > 0 ? "+" : ""}{stats.diff.toFixed(1)}
                 <span className="ml-0.5 text-xs font-normal text-slate-400">kg</span>
@@ -122,7 +122,7 @@ export default function Weight() {
                 <TrendIcon className="h-3 w-3" /> 较上次
               </p>
             </div>
-            <div className="rounded-xl border border-slate-200/70 bg-white/80 p-4 text-center">
+            <div className="rounded-xl border border-slate-200 bg-white p-4 text-center">
               <p className="text-2xl font-semibold text-slate-900">
                 {stats.latest.body_fat || "—"}
                 <span className="ml-0.5 text-xs font-normal text-slate-400">{stats.latest.body_fat ? "%" : ""}</span>
@@ -132,7 +132,7 @@ export default function Weight() {
           </div>
 
           {stats.recent.length > 1 ? (
-            <div className="rounded-xl border border-slate-200/70 bg-white/80 p-4">
+            <div className="rounded-xl border border-slate-200 bg-white p-4">
               <div className="mb-1 flex items-center justify-between text-[11px] text-slate-400">
                 <span>近 {stats.recent.length} 次趋势</span>
                 <span>区间 {stats.min.toFixed(1)} ~ {stats.max.toFixed(1)} kg</span>
@@ -145,7 +145,7 @@ export default function Weight() {
 
           <div className="space-y-2">
             {[...rows].reverse().map((r) => (
-              <div key={r.id} className="flex items-center gap-3 rounded-xl border border-slate-200/70 bg-white/80 px-4 py-2.5">
+              <div key={r.id} className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-2.5">
                 <span className="w-20 shrink-0 text-xs text-slate-400">{r.date}</span>
                 <span className="w-16 shrink-0 text-sm font-medium text-slate-800">{r.weight} kg</span>
                 {r.body_fat ? <span className="shrink-0 text-xs text-slate-400">体脂 {r.body_fat}%</span> : null}

@@ -267,7 +267,7 @@ export default function Wishes() {
             <div className="space-y-1.5">
               {q.items.length === 0 ? <p className="py-2 text-center text-[11px] text-slate-300">这一格空着,很清净</p> : null}
               {q.items.map((r) => (
-                <div key={r.id} className="group flex items-center gap-2 rounded-lg bg-white/80 px-2.5 py-2 ring-1 ring-slate-200/70">
+                <div key={r.id} className="group flex items-center gap-2 rounded-lg bg-white px-2.5 py-2 ring-1 ring-slate-200/70">
                   <div className="min-w-0 flex-1">
                     <p className="flex items-center gap-1.5 text-sm font-medium text-slate-800">
                       <span className="truncate">{r.name}</span>

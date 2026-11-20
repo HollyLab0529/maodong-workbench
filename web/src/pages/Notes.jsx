@@ -419,7 +419,7 @@ export default function Notes() {
                 key={n.id}
                 onClick={() => openEdit(n)}
                 title="点击展开编辑"
-                className={`group cursor-pointer rounded-xl border border-l-[3px] border-slate-200/70 ${noteTint(n.ntype).edge} bg-white/80 p-4 transition-shadow hover:shadow-md${n.ntype === "链接导航" ? " md:col-span-2 xl:col-span-3" : ""}`}
+                className={`group cursor-pointer rounded-xl border border-l-[3px] border-slate-200 ${noteTint(n.ntype).edge} bg-white p-4 transition-shadow hover:shadow-md${n.ntype === "链接导航" ? " md:col-span-2 xl:col-span-3" : ""}`}
               >
                 {cover ? (
                   <img

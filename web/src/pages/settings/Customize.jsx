@@ -1,15 +1,12 @@
 import { useEffect, useState } from "react";
 import { listRows, insertRow, updateRow } from "../../api";
 import { Button, Input, Label, toast } from "../../components/ui";
-import { JOB_STATUSES, TONE_NAMES, toneChip, registerTagColors } from "../../colors";
+import { JOB_STATUSES, JOB_STATUS_TONE, TONE_NAMES, toneChip, registerTagColors } from "../../colors";
 import { ArrowUp, ArrowDown, Plus, RotateCcw, Check, Palette, Tags, Trash2 } from "lucide-react";
 
-const DEFAULT_STATUSES = JOB_STATUSES.map((name, i) => ({
-  name,
-  tone: ["teal", "blue", "purple", "amber", "orange", "rose", "pink", "green", "slate"][i] || "slate",
-}));
+const DEFAULT_STATUSES = JOB_STATUSES.map((name) => ({ name, tone: JOB_STATUS_TONE[name] || "slate" }));
 
-const card = "rounded-xl border border-slate-200/70 bg-white/80 p-5";
+const card = "rounded-xl border border-slate-200 bg-white p-5";
 
 // 小色板:点一个 tone
 function TonePicker({ value, onPick }) {

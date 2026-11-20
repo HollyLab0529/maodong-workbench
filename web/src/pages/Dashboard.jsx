@@ -23,7 +23,7 @@ function StatCard({ icon: Icon, label, value, sub, to }) {
   return (
     <Link
       to={to}
-      className="group block rounded-xl border border-slate-200/70 bg-white/80 p-4 transition-shadow hover:shadow-soft"
+      className="group block rounded-xl border border-slate-200 bg-white p-4 transition-shadow hover:shadow-soft"
     >
       <div className="mb-2 flex items-center gap-2 text-slate-400">
         <Icon className="h-4 w-4" />
@@ -40,7 +40,7 @@ function StatCard({ icon: Icon, label, value, sub, to }) {
 
 function Card({ title, icon: Icon, to, linkText, children }) {
   return (
-    <div className="rounded-xl border border-slate-200/70 bg-white/80 p-5">
+    <div className="rounded-xl border border-slate-200 bg-white p-5">
       <div className="mb-3 flex items-center justify-between">
         <h2 className="flex items-center gap-2 text-sm font-semibold text-slate-900">
           <Icon className="h-4 w-4 text-slate-400" /> {title}

@@ -224,7 +224,7 @@ export default function Expenses() {
           </div>
 
           <div className="mb-6 grid gap-4 md:grid-cols-2">
-            <div className="rounded-xl border border-slate-200/70 bg-white/80 p-5">
+            <div className="rounded-xl border border-slate-200 bg-white p-5">
               <div className="mb-1 flex items-center gap-2 text-xs text-slate-400">
                 <Wallet className="h-4 w-4" /> 本月支出（{month}）
               </div>
@@ -263,7 +263,7 @@ export default function Expenses() {
             </div>
 
             {/* 半年趋势 */}
-            <div className="rounded-xl border border-slate-200/70 bg-white/80 p-5">
+            <div className="rounded-xl border border-slate-200 bg-white p-5">
               <div className="mb-3 flex items-center gap-2 text-xs text-slate-400">
                 <TrendingUp className="h-4 w-4" /> 近 6 个月支出趋势
               </div>
@@ -292,7 +292,7 @@ export default function Expenses() {
           </div>
 
           {byCat.length > 0 ? (
-            <div className="mb-6 rounded-xl border border-slate-200/70 bg-white/80 p-5">
+            <div className="mb-6 rounded-xl border border-slate-200 bg-white p-5">
               <h2 className="mb-3 text-xs font-semibold text-slate-400">本月分类占比</h2>
               <div className="space-y-2">
                 {byCat.map(([c, v]) => (
@@ -325,7 +325,7 @@ export default function Expenses() {
                   </h2>
                   <div className="space-y-1.5">
                     {items.map((r) => (
-                      <div key={r.id} className="group flex items-center gap-3 rounded-lg border border-slate-100 bg-white/80 px-3.5 py-2.5">
+                      <div key={r.id} className="group flex items-center gap-3 rounded-lg border border-slate-100 bg-white px-3.5 py-2.5">
                         <span className={`rounded-full px-2 py-0.5 text-[11px] text-white ${CAT_COLORS[r.category] || "bg-slate-300"}`}>
                           {r.category}
                         </span>

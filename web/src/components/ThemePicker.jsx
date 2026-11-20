@@ -37,7 +37,7 @@ export default function ThemePicker({ className = "", label = "" }) {
                   }`}
                 >
                   <span
-                    className="flex h-8 w-10 shrink-0 items-end justify-end gap-1 rounded-lg border border-slate-200/70 p-1"
+                    className="flex h-8 w-10 shrink-0 items-end justify-end gap-1 rounded-lg border border-slate-200 p-1"
                     style={{ background: p.bg }}
                   >
                     <span className="h-2.5 w-2.5 rounded-full" style={{ background: p.accent }} />

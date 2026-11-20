@@ -156,7 +156,7 @@ export default function Ideas() {
 
         {/* 创作者：可切换看全部用户的灵感 */}
         {isOwner ? (
-          <div className="flex flex-wrap items-center gap-1.5 rounded-xl border border-slate-200/70 bg-white/70 p-1.5">
+          <div className="flex flex-wrap items-center gap-1.5 rounded-xl border border-slate-200 bg-white/70 p-1.5">
             {[
               ["all", `所有人的灵感 ${allRows.length}`],
               ["mine", `只看我的 ${rows.length}`],
@@ -204,7 +204,7 @@ export default function Ideas() {
             {shown.map((r) => {
               const st = statusOf(r.status);
               return (
-                <div key={r.id} className="group rounded-xl border border-slate-200/70 bg-white/80 p-4">
+                <div key={r.id} className="group rounded-xl border border-slate-200 bg-white p-4">
                   <div className="flex items-start gap-3">
                     <span className={`mt-0.5 flex h-5 shrink-0 items-center gap-1.5 rounded-full px-2 text-[11px] ${st.cls}`}>
                       <span className={`h-1.5 w-1.5 rounded-full ${st.dot}`} />

@@ -3,7 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import Layout, { PageHeader } from "../components/Layout";
 import { listRows, insertRow, updateRow, deleteRow, todayStr, api } from "../api";
 import { useLiveReload } from "../live";
-import { Button, Input, Label, Checkbox, Modal, Badge, EmptyState, Loading, toast } from "../components/ui";
+import { Button, Input, Label, Checkbox, Modal, Badge, EmptyState, Loading, toast, Textarea } from "../components/ui";
 import { useQuadLayout, quadStyle, quadClass, ResizeHandle } from "../components/QuadGrid";
 import { Plus, Trash2, CalendarClock, Clock, MapPin, Repeat, Bell, Sparkles, Grid2x2, Pencil } from "lucide-react";
 
@@ -105,26 +105,42 @@ function TodoRow({ t, today, titles, onMove, onToggle, onRemove, onEdit }) {
   const [menu, setMenu] = useState(false);
   const cur = QUAD_KEYS.includes(t.quadrant) ? t.quadrant : "auto";
   return (
-    <div className="group flex items-center gap-3 rounded-lg border border-slate-100 bg-white/80 px-3.5 py-2.5 transition-shadow hover:shadow-soft">
+    <div className="group flex items-center gap-3 rounded-lg border border-slate-100 bg-white px-3.5 py-2.5 transition-shadow hover:shadow-soft">
       <Checkbox checked={!!t.done} onChange={() => onToggle(t)} />
-      <span className={`flex-1 font-medium ${t.done ? "text-slate-300 line-through" : "text-slate-800"}`}>
-        {t.title}
-      </span>
+      <div className="min-w-0 flex-1">
+        <span className={`block truncate font-medium ${t.done ? "text-slate-300 line-through" : "text-slate-800"}`}>
+          {t.title}
+        </span>
+        {t.notes ? (
+          <span
+            className={`mt-0.5 block truncate text-xs ${t.done ? "text-slate-300 line-through" : "text-slate-400"}`}
+            title={t.notes}
+          >
+            {t.notes}
+          </span>
+        ) : null}
+      </div>
       {t.repeat ? (
         <span className="hidden items-center gap-1 text-xs text-terracotta-500 sm:flex" title={`重复：${REPEAT_LABEL[t.repeat]}`}>
           <Repeat className="h-3.5 w-3.5" /> {REPEAT_LABEL[t.repeat]}
         </span>
       ) : null}
-      {t.due_date ? (
-        <span className={`hidden items-center gap-1 text-xs sm:flex ${!t.done && t.due_date < today ? "font-medium text-red-500" : "text-slate-600"}`}>
-          <CalendarClock className="h-3.5 w-3.5" /> {t.due_date}
-        </span>
-      ) : null}
-      {t.due_time ? (
-        <span className={`hidden items-center gap-1 text-xs sm:flex ${!t.done && t.due_date && t.due_date <= today ? "font-medium text-red-500" : "text-slate-600"}`}>
-          <Clock className="h-3.5 w-3.5" /> {t.due_time}
-        </span>
-      ) : null}
+      {t.due_date ? (() => {
+        const urgent = !t.done && t.due_date <= today;
+        return (
+          <span className={`items-center gap-1 text-xs ${urgent ? "flex font-medium text-red-500" : "hidden text-slate-600 sm:flex"}`}>
+            <CalendarClock className="h-3.5 w-3.5" /> {t.due_date}
+          </span>
+        );
+      })() : null}
+      {t.due_time ? (() => {
+        const urgent = !t.done && t.due_date && t.due_date <= today;
+        return (
+          <span className={`items-center gap-1 text-xs ${urgent ? "flex font-medium text-red-500" : "hidden text-slate-600 sm:flex"}`}>
+            <Clock className="h-3.5 w-3.5" /> {t.due_time}
+          </span>
+        );
+      })() : null}
       {t.location ? (
         <span className="hidden max-w-[10rem] items-center gap-1 truncate text-xs text-slate-600 sm:flex" title={t.location}>
           <MapPin className="h-3.5 w-3.5 shrink-0" /> {t.location}
@@ -177,6 +193,7 @@ export default function Todos() {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState(null); // 正在编辑的待办（null = 新建）
   const [title, setTitle] = useState("");
+  const [notes, setNotes] = useState("");
   const [priority, setPriority] = useState("中");
   const [dueDate, setDueDate] = useState("");
   const [dueTime, setDueTime] = useState("");
@@ -253,11 +270,12 @@ export default function Todos() {
   }, [todos, today, titles]);
   const doneTodos = useMemo(() => todos.filter((t) => t.done), [todos]);
 
-  const openNew = () => { setEditing(null); setTitle(""); setPriority("中"); setDueDate(""); setDueTime(""); setLocation(""); setQuad(""); setRepeat(""); setOpen(true); };
+  const openNew = () => { setEditing(null); setTitle(""); setNotes(""); setPriority("中"); setDueDate(""); setDueTime(""); setLocation(""); setQuad(""); setRepeat(""); setOpen(true); };
   // 点条目的铅笔 → 预填弹窗编辑
   const openEdit = (t) => {
     setEditing(t);
     setTitle(t.title || "");
+    setNotes(t.notes || "");
     setPriority(t.priority || "中");
     setDueDate(t.due_date || "");
     setDueTime(t.due_time || "");
@@ -284,6 +302,7 @@ export default function Todos() {
     try {
       const payload = {
         title: title.trim(),
+        notes: notes.trim(),
         priority,
         due_date: dueDate,
         due_time: dueTime,
@@ -301,6 +320,7 @@ export default function Todos() {
       setOpen(false);
       setEditing(null);
       setTitle("");
+      setNotes("");
       setDueDate("");
       setDueTime("");
       setLocation("");
@@ -339,6 +359,7 @@ export default function Todos() {
       if (!t.done && t.repeat && t.due_date) {
         await insertRow("todos", {
           title: t.title,
+          notes: t.notes || "",
           priority: t.priority,
           due_date: nextDue(t.due_date, t.repeat),
           due_time: t.due_time || "",
@@ -427,7 +448,7 @@ export default function Todos() {
         subtitle="四象限：格子自己选，不选就自动推断；格子名也能改"
         action={
           <div className="flex items-center gap-2">
-            <div className="flex rounded-lg border border-slate-200 bg-white/80 p-0.5">
+            <div className="flex rounded-lg border border-slate-200 bg-white p-0.5">
               {[["matrix", "四象限"], ["list", "列表"]].map(([v, label]) => (
                 <button
                   key={v}
@@ -569,6 +590,16 @@ export default function Todos() {
           <div>
             <Label>任务内容</Label>
             <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="要做什么？" onKeyDown={(e) => e.key === "Enter" && save()} />
+          </div>
+          <div>
+            <Label>备注 / 正文（可选）</Label>
+            <Textarea
+              value={notes}
+              onInput={(e) => setNotes(e.target.value)}
+              rows={2}
+              autoGrow
+              placeholder="补充细节、链接、验收标准…"
+            />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>

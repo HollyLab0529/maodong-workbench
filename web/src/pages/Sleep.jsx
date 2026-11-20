@@ -117,17 +117,17 @@ export default function Sleep() {
       ) : (
         <div className="space-y-5">
           <div className="grid grid-cols-3 gap-3">
-            <div className="rounded-xl border border-slate-200/70 bg-white/80 p-4 text-center">
+            <div className="rounded-xl border border-slate-200 bg-white p-4 text-center">
               <Clock className="mx-auto mb-1 h-4 w-4 text-terracotta" />
               <p className="text-xl font-semibold text-slate-900">{stats.avg}<span className="ml-0.5 text-xs font-normal text-slate-400">h</span></p>
               <p className="text-[11px] text-slate-400">本周平均时长</p>
             </div>
-            <div className="rounded-xl border border-slate-200/70 bg-white/80 p-4 text-center">
+            <div className="rounded-xl border border-slate-200 bg-white p-4 text-center">
               <Heart className="mx-auto mb-1 h-4 w-4 text-terracotta" />
               <p className="text-xl font-semibold text-slate-900">{stats.avgQ}</p>
               <p className="text-[11px] text-slate-400">本周平均质量</p>
             </div>
-            <div className="rounded-xl border border-slate-200/70 bg-white/80 p-4 text-center">
+            <div className="rounded-xl border border-slate-200 bg-white p-4 text-center">
               <Moon className="mx-auto mb-1 h-4 w-4 text-terracotta" />
               <p className="text-xl font-semibold text-slate-900">{stats.count} 天</p>
               <p className="text-[11px] text-slate-400">本周已打卡</p>
@@ -139,7 +139,7 @@ export default function Sleep() {
           ) : (
             <div className="space-y-2">
               {rows.map((r) => (
-                <div key={r.id} className="flex items-center gap-3 rounded-xl border border-slate-200/70 bg-white/80 px-4 py-3">
+                <div key={r.id} className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3">
                   <span className="w-20 shrink-0 text-xs text-slate-400">{r.date}</span>
                   <span className="w-28 shrink-0 text-sm text-slate-700">
                     {r.bedtime} → {r.wakeup}

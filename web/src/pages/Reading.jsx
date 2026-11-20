@@ -169,7 +169,7 @@ export default function Reading() {
           ) : (
             <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
               {filtered.map((r) => (
-                <div key={r.id} className="rounded-xl border border-slate-200/70 bg-white/80 p-4">
+                <div key={r.id} className="rounded-xl border border-slate-200 bg-white p-4">
                   <div className="mb-1.5 flex items-start justify-between gap-2">
                     <div className="min-w-0">
                       <h3 className="truncate font-medium text-slate-900">

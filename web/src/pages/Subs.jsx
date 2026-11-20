@@ -190,16 +190,16 @@ export default function Subs() {
       ) : (
         <div className="space-y-5">
           <div className="grid grid-cols-3 gap-3">
-            <div className="rounded-xl border border-slate-200/70 bg-white/80 p-4 text-center">
+            <div className="rounded-xl border border-slate-200 bg-white p-4 text-center">
               <CreditCard className="mx-auto mb-1 h-4 w-4 text-terracotta" />
               <p className="text-xl font-semibold text-slate-900">{totals.count} 个</p>
               <p className="text-[11px] text-slate-400">生效中订阅</p>
             </div>
-            <div className="rounded-xl border border-slate-200/70 bg-white/80 p-4 text-center">
+            <div className="rounded-xl border border-slate-200 bg-white p-4 text-center">
               <p className="text-xl font-semibold text-slate-900">¥{totals.perMonth.toFixed(0)}</p>
               <p className="text-[11px] text-slate-400">折合每月</p>
             </div>
-            <div className="rounded-xl border border-slate-200/70 bg-white/80 p-4 text-center">
+            <div className="rounded-xl border border-slate-200 bg-white p-4 text-center">
               <p className="text-xl font-semibold text-terracotta-600">¥{totals.perYear.toFixed(0)}</p>
               <p className="text-[11px] text-slate-400">每年总花费</p>
             </div>
@@ -229,7 +229,7 @@ export default function Subs() {
                 {urgent.map((r) => {
                   const d = daysUntil(r.next_date);
                   return (
-                    <div key={r.id} className="flex flex-wrap items-center gap-2 rounded-lg bg-white/80 px-3 py-2">
+                    <div key={r.id} className="flex flex-wrap items-center gap-2 rounded-lg bg-white px-3 py-2">
                       <span className="text-sm font-medium text-slate-800">{r.name}</span>
                       <span className="rounded-full bg-terracotta px-2 py-0.5 text-[10px] text-white">
                         {d === 0 ? "今天扣费" : `${d} 天后扣费`}
@@ -259,7 +259,7 @@ export default function Subs() {
                   <div
                     key={r.id}
                     className={`flex flex-wrap items-center gap-3 rounded-xl border px-4 py-3 ${
-                      soon ? "border-terracotta-200 bg-terracotta-50/60" : "border-slate-200/70 bg-white/80"
+                      soon ? "border-terracotta-200 bg-terracotta-50/60" : "border-slate-200 bg-white"
                     } ${active ? "" : "opacity-55"}`}
                   >
                     <div className="min-w-0 flex-1">

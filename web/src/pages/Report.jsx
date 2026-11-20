@@ -253,7 +253,7 @@ export default function Report() {
           {mode === "edit" ? (
             <Textarea value={text} onChange={(e) => setText(e.target.value)} rows={22} className="font-mono text-[13px]" />
           ) : (
-            <div className="min-h-[20rem] rounded-xl border border-slate-200/70 bg-white/80 p-5 md:p-6">
+            <div className="min-h-[20rem] rounded-xl border border-slate-200 bg-white p-5 md:p-6">
               <MarkdownLite text={text} />
             </div>
           )}

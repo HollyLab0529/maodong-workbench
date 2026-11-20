@@ -190,7 +190,7 @@ export default function Trips() {
                 return (
                   <div
                     key={r.id}
-                    className="cursor-pointer rounded-xl border border-slate-200/70 bg-white/80 p-4 transition-shadow hover:shadow-soft"
+                    className="cursor-pointer rounded-xl border border-slate-200 bg-white p-4 transition-shadow hover:shadow-soft"
                     onClick={() => openDetail(r)}
                   >
                     <div className="mb-1.5 flex items-start justify-between gap-2">

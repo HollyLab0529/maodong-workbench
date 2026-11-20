@@ -186,7 +186,7 @@ export default function Expiry() {
             ["30 天内", stats.month, "text-terracotta"],
             ["在用总数", stats.open, "text-slate-700"],
           ].map(([label, val, cls]) => (
-            <div key={label} className="rounded-xl border border-slate-200/70 bg-white/80 px-3.5 py-3">
+            <div key={label} className="rounded-xl border border-slate-200 bg-white px-3.5 py-3">
               <p className="text-[11px] text-slate-400">{label}</p>
               <p className={`mt-0.5 text-xl font-semibold ${cls}`}>{val}</p>
             </div>
@@ -279,7 +279,7 @@ export default function Expiry() {
               return (
                 <div
                   key={item.id}
-                  className="group flex items-center gap-3 rounded-lg border border-slate-100 bg-white/80 px-3.5 py-2.5 transition-shadow hover:shadow-soft"
+                  className="group flex items-center gap-3 rounded-lg border border-slate-100 bg-white px-3.5 py-2.5 transition-shadow hover:shadow-soft"
                 >
                   <Checkbox checked={!!item.used} onChange={() => toggleUsed(item)} />
                   <div className="min-w-0 flex-1">

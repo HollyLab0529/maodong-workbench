@@ -78,7 +78,7 @@ export default function Feedback() {
         <Loading />
       ) : !data?.ok ? (
         <div className="max-w-2xl">
-          <div className="rounded-xl border border-slate-200/70 bg-white/80 p-6">
+          <div className="rounded-xl border border-slate-200 bg-white p-6">
             <p className="mb-2 flex items-center gap-2 text-sm font-medium text-slate-800">
               {data?.reason === "unconfigured" ? <Settings2 className="h-4 w-4 text-terracotta" /> : <WifiOff className="h-4 w-4 text-terracotta" />}
               {data?.reason === "unconfigured" ? "还没连接反馈服务" : "反馈服务暂时连不上"}
@@ -100,7 +100,7 @@ export default function Feedback() {
               { icon: Users, label: "今日访客", value: data.stats?.uv_today ?? 0 },
               { icon: Eye, label: "累计浏览", value: data.stats?.pv_total ?? 0 },
             ].map(({ icon: Icon, label, value }) => (
-              <div key={label} className="rounded-xl border border-slate-200/70 bg-white/80 p-4 text-center">
+              <div key={label} className="rounded-xl border border-slate-200 bg-white p-4 text-center">
                 <Icon className="mx-auto mb-1 h-4 w-4 text-terracotta" />
                 <p className="text-xl font-semibold text-slate-900">{value}</p>
                 <p className="text-[11px] text-slate-400">{label}</p>
@@ -110,7 +110,7 @@ export default function Feedback() {
 
           {/* 14 天浏览趋势 */}
           {chart ? (
-            <div className="rounded-xl border border-slate-200/70 bg-white/80 p-4">
+            <div className="rounded-xl border border-slate-200 bg-white p-4">
               <p className="mb-2 text-xs text-slate-400">近 14 天浏览量</p>
               <div className="flex h-24 items-end gap-1">
                 {chart.vals.map((v, i) => (
@@ -130,7 +130,7 @@ export default function Feedback() {
 
           {/* 热门页面 */}
           {pages.length > 0 ? (
-            <div className="rounded-xl border border-slate-200/70 bg-white/80 p-4">
+            <div className="rounded-xl border border-slate-200 bg-white p-4">
               <p className="mb-2 text-xs text-slate-400">最受欢迎的页面</p>
               <div className="space-y-1.5">
                 {pages.map((p) => (
@@ -162,7 +162,7 @@ export default function Feedback() {
             ) : (
               <div className="space-y-2">
                 {data.items.map((it) => (
-                  <div key={it.id} className="rounded-xl border border-slate-200/70 bg-white/80 p-4">
+                  <div key={it.id} className="rounded-xl border border-slate-200 bg-white p-4">
                     <div className="mb-1.5 flex flex-wrap items-center gap-2 text-[11px] text-slate-400">
                       <span className="rounded-full bg-slate-100 px-2 py-0.5">#{it.id}</span>
                       <span>{String(it.created_at || "").slice(0, 16)}</span>

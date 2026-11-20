@@ -107,7 +107,7 @@ export default function Store() {
     persistOrder(list);
   };
 
-  const card = "rounded-xl border border-slate-200/70 bg-white/80 p-4";
+  const card = "rounded-xl border border-slate-200 bg-white p-4";
 
   return (
     <Layout>
@@ -151,7 +151,7 @@ export default function Store() {
                 onDragStart={() => (dragId.current = m.id)}
                 onDragOver={(e) => e.preventDefault()}
                 onDrop={() => onDrop(idx)}
-                className={`flex items-center gap-2 rounded-xl border border-slate-200/70 bg-white/80 p-3 ${
+                className={`flex items-center gap-2 rounded-xl border border-slate-200 bg-white p-3 ${
                   m.core ? "opacity-90" : "cursor-grab active:cursor-grabbing"
                 }`}
               >

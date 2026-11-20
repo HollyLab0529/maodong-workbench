@@ -176,8 +176,8 @@ export default function Recipes() {
                 return (
                   <div
                     key={r.id}
-                    className={`relative cursor-pointer rounded-xl border bg-white/80 p-4 transition-all hover:shadow-soft ${
-                      picked ? "border-terracotta-400 ring-2 ring-terracotta-200" : "border-slate-200/70"}
+                    className={`relative cursor-pointer rounded-xl border bg-white p-4 transition-all hover:shadow-soft ${
+                      picked ? "border-terracotta-400 ring-2 ring-terracotta-200" : "border-slate-200"}
                       ${selectMode ? "pl-10" : ""}`}
                     onClick={() => (selectMode ? toggleSelect(r.id) : setDetail(r))}
                   >

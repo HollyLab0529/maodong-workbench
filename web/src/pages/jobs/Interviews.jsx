@@ -179,7 +179,7 @@ export default function Interviews() {
           {sorted.map((r) => (
             <div
               key={r.id}
-              className="group cursor-pointer rounded-xl border border-slate-200/70 bg-white/80 p-4 transition-shadow hover:shadow-soft"
+              className="group cursor-pointer rounded-xl border border-slate-200 bg-white p-4 transition-shadow hover:shadow-soft"
               onClick={() => setViewing(r)}
             >
               <div className="mb-1.5 flex flex-wrap items-center gap-2">
@@ -344,7 +344,7 @@ export default function Interviews() {
             <div className="space-y-3 rounded-lg border border-terracotta-100 bg-terracotta-50/40 p-3">
               <div className="space-y-2">
                 {aiResult.questions.map((q, i) => (
-                  <div key={i} className="rounded-lg bg-white/80 p-2.5 text-xs">
+                  <div key={i} className="rounded-lg bg-white p-2.5 text-xs">
                     <p className="font-medium text-slate-800">{i + 1}. {q.q}</p>
                     <p className="mt-0.5 text-slate-400">考点：{q.topic || "—"}</p>
                     {q.good ? <p className="mt-0.5 text-green-700">答得好：{q.good}</p> : null}

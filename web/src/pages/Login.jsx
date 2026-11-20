@@ -54,9 +54,9 @@ export default function Login({ onLogin }) {
           </p>
         </div>
 
-        <form onSubmit={submit} className="space-y-4 rounded-2xl border border-slate-200/70 bg-white/80 p-6 shadow-soft">
+        <form onSubmit={submit} className="space-y-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-soft">
           {demo ? (
-            <div className="rounded-xl border border-slate-200/70 bg-slate-50/80 p-3 text-xs leading-relaxed text-slate-500">
+            <div className="rounded-xl border border-slate-200 bg-slate-50/80 p-3 text-xs leading-relaxed text-slate-500">
               <p className="font-medium text-slate-700">这是在线演示站</p>
               <p className="mt-1">演示数据每天 04:00 自动重置，随便点、随便改。</p>
               <button

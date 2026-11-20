@@ -110,7 +110,7 @@ export default function Habits() {
             const target = Number(h.target_per_week) || 7;
             const ok = weekDone >= target;
             return (
-              <div key={h.id} className="rounded-xl border border-slate-200/70 bg-white/80 p-4">
+              <div key={h.id} className="rounded-xl border border-slate-200 bg-white p-4">
                 <div className="mb-3 flex items-center justify-between gap-2">
                   <div>
                     <p className="text-sm font-medium text-slate-800">

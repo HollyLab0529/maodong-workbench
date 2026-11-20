@@ -1,6 +1,6 @@
-#!/bin/zsh
+#!/usr/bin/env bash
 # 敏感信息检查:推公开分支(main)前扫描已提交内容中的个人信息/服务器信息
-# 用法: zsh scripts/check-sensitive.sh [commit-sha]   默认扫 HEAD
+# 用法: bash scripts/check-sensitive.sh [commit-sha]   默认扫 HEAD
 # 命中即退出码 1,并在 pre-push 钩子中拦截推送
 
 SHA="${1:-HEAD}"

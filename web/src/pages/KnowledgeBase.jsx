@@ -263,7 +263,7 @@ export default function KnowledgeBase() {
             return (
             <div
               key={a.id}
-              className={`group cursor-pointer rounded-xl border border-l-[3px] border-slate-200/70 ${tint.edge} bg-white/80 p-4 transition-shadow hover:shadow-soft`}
+              className={`group cursor-pointer rounded-xl border border-l-[3px] border-slate-200 ${tint.edge} bg-white p-4 transition-shadow hover:shadow-soft`}
               onClick={() => setViewing(a)}
             >
               <div className="mb-2 flex items-start justify-between gap-2">

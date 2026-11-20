@@ -113,7 +113,7 @@ export default function Fitness() {
               { icon: Timer, label: "本周时长", value: `${stats.minutes} 分钟` },
               { icon: Layers, label: "本周组数", value: `${stats.sets} 组` },
             ].map(({ icon: Icon, label, value }) => (
-              <div key={label} className="rounded-xl border border-slate-200/70 bg-white/80 p-4 text-center">
+              <div key={label} className="rounded-xl border border-slate-200 bg-white p-4 text-center">
                 <Icon className="mx-auto mb-1 h-4 w-4 text-terracotta" />
                 <p className="text-lg font-semibold text-slate-900">{value}</p>
                 <p className="text-[11px] text-slate-400">{label}</p>
@@ -122,7 +122,7 @@ export default function Fitness() {
           </div>
 
           {/* 近 8 周 */}
-          <div className="rounded-xl border border-slate-200/70 bg-white/80 p-4">
+          <div className="rounded-xl border border-slate-200 bg-white p-4">
             <p className="mb-2 text-xs text-slate-400">近 8 周训练次数</p>
             <div className="flex h-20 items-end gap-2">
               {stats.weeks.map((w) => (
@@ -147,7 +147,7 @@ export default function Fitness() {
                 let moves = [];
                 try { moves = JSON.parse(r.exercises || "[]"); } catch {}
                 return (
-                  <div key={r.id} className="flex items-start gap-3 rounded-xl border border-slate-200/70 bg-white/80 p-4">
+                  <div key={r.id} className="flex items-start gap-3 rounded-xl border border-slate-200 bg-white p-4">
                     <div className="min-w-0 flex-1">
                       <div className="mb-1 flex flex-wrap items-center gap-1.5">
                         <span className="text-xs font-medium text-slate-400">{r.date}</span>

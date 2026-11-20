@@ -1,4 +1,4 @@
-#!/bin/zsh
+#!/usr/bin/env bash
 # 拦截敏感文件提交：data/、*.db、.env、令牌、deploy.local.sh
 # 放行：git reset HEAD <file> 移除暂存，或 WB_ALLOW_DATA=1 git commit ...（一次性明确放行）
 set -u

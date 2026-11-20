@@ -74,7 +74,7 @@ export default function ApiDoc() {
 
       <div className="max-w-2xl space-y-5 xl:max-w-3xl">
         {/* 快速开始 */}
-        <section className="rounded-xl border border-slate-200/70 bg-white/80 p-5">
+        <section className="rounded-xl border border-slate-200 bg-white p-5">
           <h2 className="mb-2 text-sm font-semibold text-slate-900">1. 快速开始</h2>
           <ol className="mb-3 list-decimal space-y-1 pl-5 text-xs leading-relaxed text-slate-600">
             <li>在 <Link to="/settings" className="text-terracotta-600 hover:underline">设置 → API 访问</Link> 创建一枚令牌（明文只显示一次）</li>
@@ -87,7 +87,7 @@ curl ${BASE}/api/v1/me \\
         </section>
 
         {/* 端点 */}
-        <section className="rounded-xl border border-slate-200/70 bg-white/80 p-5">
+        <section className="rounded-xl border border-slate-200 bg-white p-5">
           <h2 className="mb-3 text-sm font-semibold text-slate-900">2. 端点一览</h2>
           <div className="space-y-2">
             {ENDPOINTS.map(([method, path, desc, scope]) => (
@@ -106,7 +106,7 @@ curl ${BASE}/api/v1/me \\
         </section>
 
         {/* 集合 */}
-        <section className="rounded-xl border border-slate-200/70 bg-white/80 p-5">
+        <section className="rounded-xl border border-slate-200 bg-white p-5">
           <h2 className="mb-1 text-sm font-semibold text-slate-900">3. 可用集合</h2>
           <p className="mb-3 text-xs text-slate-500">把下表第一列替换进路径的 <code className="rounded bg-slate-100 px-1 font-mono text-[11px]">:coll</code>；完整字段以 <code className="rounded bg-slate-100 px-1 font-mono text-[11px]">GET /api/v1/schema</code> 为准。</p>
           <div className="space-y-1.5">
@@ -123,7 +123,7 @@ curl ${BASE}/api/v1/me \\
         </section>
 
         {/* 示例 */}
-        <section className="rounded-xl border border-slate-200/70 bg-white/80 p-5">
+        <section className="rounded-xl border border-slate-200 bg-white p-5">
           <h2 className="mb-3 text-sm font-semibold text-slate-900">4. 常用示例</h2>
           <div className="space-y-4">
             <div>
@@ -164,7 +164,7 @@ curl ${BASE}/api/v1/me \\
         </section>
 
         {/* 安全说明 */}
-        <section className="rounded-xl border border-slate-200/70 bg-white/80 p-5">
+        <section className="rounded-xl border border-slate-200 bg-white p-5">
           <h2 className="mb-2 text-sm font-semibold text-slate-900">5. 安全约定</h2>
           <ul className="list-disc space-y-1 pl-5 text-xs leading-relaxed text-slate-600">
             <li>令牌只存哈希（sha256），服务器也找不回明文；丢了就吊销重建</li>

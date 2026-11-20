@@ -136,7 +136,7 @@ export default function Offers() {
             <div
               key={o.id}
               className={`group rounded-xl border p-4 transition-shadow hover:shadow-soft ${
-                idx === 0 && o.status === "考虑中" ? "border-terracotta-300 bg-terracotta-50/40" : "border-slate-200/70 bg-white/80"
+                idx === 0 && o.status === "考虑中" ? "border-terracotta-300 bg-terracotta-50/40" : "border-slate-200 bg-white"
               }`}
             >
               <div className="mb-3 flex flex-wrap items-center gap-2">

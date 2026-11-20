@@ -180,7 +180,7 @@ export default function Layout({ children }) {
       {/* 桌面侧栏：可折叠成图标条 */}
       <aside
         style={collapsed ? undefined : { width: sbWidth }}
-        className={`sticky top-0 hidden h-screen shrink-0 flex-col border-r border-slate-200/70 bg-white/70 py-6 backdrop-blur md:flex ${
+        className={`sticky top-0 hidden h-screen shrink-0 flex-col border-r border-slate-200 bg-white py-6 backdrop-blur md:flex ${
           collapsed ? "w-[68px] px-2.5" : "px-4"
         } ${resizing ? "" : "transition-[width] duration-200"}`}
       >
@@ -224,7 +224,7 @@ export default function Layout({ children }) {
               {!collapsed ? (
                 <p className={`mb-1 px-3 text-[10px] font-medium uppercase tracking-wider ${g.rest ? "text-slate-300" : "text-slate-400"}`}>{g.name}</p>
               ) : (
-                <div className="mx-3 mb-1 border-t border-slate-200/70" />
+                <div className="mx-3 mb-1 border-t border-slate-200" />
               )}
               {g.modules.map(({ title, to, icon: Icon, tone }) => (
                 <NavLink key={to} to={to} end={to === "/"} title={title} className={navItemClass}>
@@ -236,7 +236,7 @@ export default function Layout({ children }) {
           ))}
         </nav>
 
-        <div className="mt-auto space-y-2 border-t border-slate-200/70 pt-3">
+        <div className="mt-auto space-y-2 border-t border-slate-200 pt-3">
           <NavLink to="/store" title="模块超市" className={navItemClass}>
             <LayoutGrid className="h-4 w-4 shrink-0" />
             {!collapsed ? <span>模块超市</span> : null}
@@ -269,7 +269,7 @@ export default function Layout({ children }) {
           <NavLink
             to="/settings"
             title="个人资料"
-            className={`flex items-center rounded-xl border border-slate-200/70 bg-white/80 p-2.5 transition-colors hover:bg-slate-50 ${
+            className={`flex items-center rounded-xl border border-slate-200 bg-white p-2.5 transition-colors hover:bg-slate-50 ${
               collapsed ? "justify-center" : "gap-2.5"
             }`}
           >
@@ -301,7 +301,7 @@ export default function Layout({ children }) {
 
       <div className="flex min-w-0 flex-1 flex-col">
         {/* 移动端顶栏：logo + 工具（模块导航移到底部 Tab） */}
-        <header className="sticky top-0 z-10 flex items-center gap-1 border-b border-slate-200/70 bg-slate-50/90 px-3 py-2.5 backdrop-blur md:hidden">
+        <header className="sticky top-0 z-10 flex items-center gap-1 border-b border-slate-200 bg-slate-50/90 px-3 py-2.5 backdrop-blur md:hidden">
           <CatLogo size={26} rounded={8} className="mr-1 shrink-0" />
           <span className="font-display text-sm font-semibold text-slate-900">猫冬手帐</span>
           <div className="ml-auto flex shrink-0 items-center gap-0.5">
@@ -315,14 +315,14 @@ export default function Layout({ children }) {
           </div>
         </header>
 
-        <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-6 pb-24 md:px-8 md:py-8 md:pb-8 xl:max-w-6xl 2xl:max-w-7xl">
+        <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 pb-24 md:px-8 md:py-8 md:pb-8 2xl:max-w-[1500px]">
           <div key={location.pathname} className="page-enter">
             {children}
           </div>
         </main>
 
         {/* 移动端底部 Tab */}
-        <nav className="fixed inset-x-0 bottom-0 z-20 flex border-t border-slate-200/70 bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden">
+        <nav className="fixed inset-x-0 bottom-0 z-20 flex border-t border-slate-200 bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden">
           {tabNav.map(({ title, to, icon: Icon }) => (
             <NavLink
               key={to}
@@ -359,7 +359,7 @@ export default function Layout({ children }) {
                   `flex flex-col items-center gap-1.5 rounded-xl border p-3 text-center text-xs transition-colors ${
                     isActive
                       ? "border-terracotta-300 bg-terracotta-50 font-medium text-terracotta-700"
-                      : "border-slate-200/70 bg-white text-slate-600 hover:bg-slate-50"
+                      : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
                   }`
                 }
               >
@@ -372,14 +372,14 @@ export default function Layout({ children }) {
             <Link
               to="/store"
               onClick={() => setMoreOpen(false)}
-              className="flex items-center justify-center gap-1.5 rounded-xl border border-slate-200/70 bg-white py-2.5 text-xs text-slate-600 hover:bg-slate-50"
+              className="flex items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white py-2.5 text-xs text-slate-600 hover:bg-slate-50"
             >
               <LayoutGrid className="h-4 w-4" /> 模块超市
             </Link>
             <Link
               to="/settings"
               onClick={() => setMoreOpen(false)}
-              className="flex items-center justify-center gap-1.5 rounded-xl border border-slate-200/70 bg-white py-2.5 text-xs text-slate-600 hover:bg-slate-50"
+              className="flex items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white py-2.5 text-xs text-slate-600 hover:bg-slate-50"
             >
               <SettingsIcon className="h-4 w-4" /> 设置
             </Link>

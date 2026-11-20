@@ -202,7 +202,7 @@ export default function Accounts() {
             ["弱密码", stats.weak, "text-red-500"],
             ["重复使用的账号", stats.dup, "text-amber-600"],
           ].map(([label, val, cls]) => (
-            <div key={label} className="rounded-xl border border-slate-200/70 bg-white/80 px-3.5 py-3">
+            <div key={label} className="rounded-xl border border-slate-200 bg-white px-3.5 py-3">
               <p className="text-[11px] text-slate-400">{label}</p>
               <p className={`mt-0.5 text-xl font-semibold ${cls}`}>{val}</p>
             </div>
@@ -347,7 +347,7 @@ export default function Accounts() {
               return (
                 <div
                   key={r.id}
-                  className={`group rounded-lg border border-l-[3px] border-slate-100 ${tintOf(r.category).edge} bg-white/80 px-3.5 py-2.5 transition-shadow hover:shadow-soft`}
+                  className={`group rounded-lg border border-l-[3px] border-slate-100 ${tintOf(r.category).edge} bg-white px-3.5 py-2.5 transition-shadow hover:shadow-soft`}
                 >
                   <div className="flex items-center gap-2">
                     <span className="truncate text-sm font-medium text-slate-800">{r.platform}</span>

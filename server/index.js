@@ -39,9 +39,9 @@ const SECRET = loadSecret();
 
 const COLLECTIONS = {
   kb_articles: ["title", "category", "tags", "content", "updated_at"],
-  job_apps: ["company", "position", "jd_code", "location", "business", "link", "applied_date", "resume_id", "status", "note", "updated_at"],
+  job_apps: ["company", "position", "jd_code", "location", "business", "link", "applied_date", "plan_date", "publish_date", "tier", "batch", "resume_id", "status", "note", "updated_at"],
   job_events: ["app_id", "title", "event_date", "note"],
-  todos: ["title", "priority", "due_date", "due_time", "location", "quadrant", "done", "repeat"],
+  todos: ["title", "notes", "priority", "due_date", "due_time", "location", "quadrant", "done", "repeat"],
   ideas: ["title", "detail", "status"],
   expiry_items: ["name", "category", "expire_date", "note", "used"],
   accounts: ["platform", "account", "password", "category", "url", "note"],

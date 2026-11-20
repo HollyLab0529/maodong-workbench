@@ -1,6 +1,7 @@
 import { lazy, Suspense } from "react";
 import { HashRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./auth";
+import ErrorBoundary from "./ErrorBoundary";
 import { Toaster } from "./components/ui";
 // 首屏页面直接打包，其余页面按路由懒加载，首屏 JS 体积约为原来的 1/3
 import Dashboard from "./pages/Dashboard";
@@ -40,11 +41,12 @@ function PageFallback() {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <Toaster />
-      <HashRouter>
-        <Suspense fallback={<PageFallback />}>
-          <Routes>
+    <ErrorBoundary>
+      <AuthProvider>
+        <Toaster />
+        <HashRouter>
+          <Suspense fallback={<PageFallback />}>
+            <Routes>
             <Route path="/" element={<Dashboard />} />
             <Route path="/kb" element={<KnowledgeBase />} />
             <Route path="/jobs" element={<Jobs />} />
@@ -71,9 +73,10 @@ export default function App() {
             <Route path="/settings" element={<Settings />} />
             <Route path="/api-doc" element={<ApiDoc />} />
             <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </Suspense>
-      </HashRouter>
-    </AuthProvider>
+            </Routes>
+          </Suspense>
+        </HashRouter>
+      </AuthProvider>
+    </ErrorBoundary>
   );
 }

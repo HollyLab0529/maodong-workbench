@@ -162,7 +162,7 @@ export default function Resumes() {
                 {shut ? null : (
                   <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                     {list.map((r) => (
-            <div key={r.id} className={`group rounded-xl border p-4 transition-shadow hover:shadow-soft ${r.in_use ? "border-terracotta-200 bg-terracotta-50/40" : "border-slate-200/70 bg-white/80"}`}>
+            <div key={r.id} className={`group rounded-xl border p-4 transition-shadow hover:shadow-soft ${r.in_use ? "border-terracotta-200 bg-terracotta-50/40" : "border-slate-200 bg-white"}`}>
               <div className="mb-1.5 flex items-start justify-between gap-2">
                 <div className="min-w-0">
                   <h3 className="flex items-center gap-1.5 truncate font-medium text-slate-900">

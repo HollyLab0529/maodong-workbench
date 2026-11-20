@@ -3,7 +3,17 @@
 import { useEffect, useState } from "react";
 import { listRows } from "./api";
 
-export const JOB_STATUSES = ["待投递", "简历筛选", "投递中", "笔试", "一面", "二面", "三面", "HR面", "Offer", "结束"];
+// 求职状态：定死成 10 档，一条线走到底（待投递 → … → Offer ／ 已取消）。
+// 不再有「投递中」：没投出去就是待投递，投出去第一步就是简历筛选中。
+export const JOB_STATUSES = [
+  "待投递", "简历筛选中", "测评中", "笔试中", "一面中", "二面中", "三面中", "HR面中", "Offer", "已取消",
+];
+// 档位 → tone。整条轴是一根色相渐变：绿灰 → 雾蓝 → 蓝紫 → 紫 → 黄褐 → 橙褐 → 砖红 → 粉灰 → 绿 → 灰
+export const JOB_STATUS_TONE = {
+  待投递: "teal", 简历筛选中: "blue", 测评中: "indigo", 笔试中: "purple",
+  一面中: "amber", 二面中: "orange", 三面中: "rose", HR面中: "pink",
+  Offer: "green", 已取消: "slate",
+};
 
 // 色板注册表:tone 名 → 莫兰迪灰调芯片样式(index.css .tone-*)。自定义状态/标签配色都从这里取
 export const TONES = {
@@ -24,11 +34,12 @@ export const toneChip = (tone) => TONES[tone] || TONES.slate;
 // 只染前景色（侧栏图标等不带底色的场景）
 export const TONE_FG = Object.fromEntries(TONE_NAMES.map((t) => [t, `tone-fg-${t}`]));
 
-const JOB_DEFAULT_TONE = {
-  待投递: "teal", 投递中: "blue", 笔试: "purple", 一面: "amber", 二面: "orange",
-  三面: "rose", HR面: "pink", Offer: "green", 结束: "slate",
+// 历史遗留写法：只用于给尚未迁移的旧值兜个色
+const LEGACY_TONE = {
+  简历筛选: "blue", 投递中: "blue", 笔试: "purple", 一面: "amber",
+  二面: "orange", 三面: "rose", HR面: "pink", 结束: "slate",
 };
-export const jobStatusStyle = (s) => toneChip(JOB_DEFAULT_TONE[s] || "slate");
+export const jobStatusStyle = (s) => toneChip(JOB_STATUS_TONE[s] || LEGACY_TONE[s] || "slate");
 
 // ===== 标签配色:支持用户自定义覆盖(settings.tag_colors),未配置的按名字哈希 =====
 let TAG_OVERRIDES = {};

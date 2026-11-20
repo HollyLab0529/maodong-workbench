@@ -261,7 +261,7 @@ export default function Settings() {
     }
   };
 
-  const card = "rounded-xl border border-slate-200/70 bg-white/80 p-5";
+  const card = "rounded-xl border border-slate-200 bg-white p-5";
 
   return (
     <Layout>
@@ -270,7 +270,9 @@ export default function Settings() {
       {loading ? (
         <Loading />
       ) : (
-        <div className="max-w-2xl space-y-5 xl:max-w-3xl">
+        <div className="grid gap-5 xl:grid-cols-2 xl:items-start">
+          {/* 宽屏两列铺满，和看板/知识库的全宽观感一致；窄屏自然堆成一列 */}
+          <div className="space-y-5">
           {/* 个人资料 */}
           <div className={card}>
             <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold text-slate-900">
@@ -375,6 +377,9 @@ export default function Settings() {
             <FontPicker />
           </div>
 
+          </div>
+
+          <div className="space-y-5">
           {/* 邀请码 */}
           <div className={card}>
             <h2 className="mb-1 flex items-center gap-2 text-sm font-semibold text-slate-900">
@@ -631,6 +636,7 @@ export default function Settings() {
             <a href={exportUrl()} target="_blank" rel="noreferrer">
               <Button variant="outline"><Download className="h-4 w-4" /> 导出全部数据</Button>
             </a>
+          </div>
           </div>
         </div>
       )}
