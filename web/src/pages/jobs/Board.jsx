@@ -92,7 +92,8 @@ export default function Board() {
   const [ev, setEv] = useState({ title: "", event_date: "", note: "" });
 
   // 视图与筛选：支持从地址栏带初始值（#/jobs?view=cards&range=all），作品集嵌入和分享链接用
-  const bootQuery = new URLSearchParams(window.location.search);
+  // HashRouter 下 query 在 hash 里（如 #/jobs?view=cards），window.location.search 读不到
+  const bootQuery = new URLSearchParams(window.location.hash.split("?")[1] || "");
   const bootView = bootQuery.get("view");
   const bootRange = bootQuery.get("range");
   const [view, setView] = useState(() =>
