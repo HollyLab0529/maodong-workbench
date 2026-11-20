@@ -39,7 +39,14 @@ const SECRET = loadSecret();
 
 const COLLECTIONS = {
   kb_articles: ["title", "category", "tags", "content", "updated_at"],
-  job_apps: ["company", "position", "jd_code", "location", "business", "link", "applied_date", "plan_date", "publish_date", "tier", "batch", "resume_id", "status", "note", "updated_at"],
+  job_apps: [
+    "company", "position", "jd_code", "location", "business", "link",
+    "applied_date", "plan_date", "publish_date", "tier", "batch", "batch_date",
+    "resume_id", "status", "note", "updated_at",
+    // v2：把「投递看板」真正需要的东西变成字段，而不是靠备注和人的记忆
+    "city", "city_multi", "company_type", "source",
+    "next_action", "next_action_date", "status_changed_at", "rejected_at", "_migrated",
+  ],
   job_events: ["app_id", "title", "event_date", "note"],
   todos: ["title", "notes", "priority", "due_date", "due_time", "location", "quadrant", "done", "repeat"],
   ideas: ["title", "detail", "status"],
@@ -51,8 +58,8 @@ const COLLECTIONS = {
   note_tags: ["name", "sort"],
   settings: ["key", "value"],
   // 求职深水区
-  interviews: ["app_id", "company", "round", "interview_date", "interviewers", "questions", "rating", "result", "summary"],
-  resumes: ["name", "target_role", "file_url", "content", "note", "in_use", "folder"],
+  interviews: ["app_id", "company", "round", "interview_date", "interviewers", "questions", "rating", "result", "summary", "status_sync"],
+  resumes: ["name", "target_role", "file_url", "content", "note", "in_use", "folder", "file_size"],
   offers: ["company", "position", "base_salary", "months", "sign_on", "equity", "commute", "team_score", "growth_score", "note", "status"],
   // 日历
   anniversaries: ["title", "date", "repeat", "note"],
@@ -764,6 +771,102 @@ app.post("/api/fetch-meta", requireAuth, async (req, res) => {
   }
 });
 
+// ---------- 招聘链接解析（粘贴一条 JD 链接，先把公司 / 岗位 / 城市猜出来填进表单） ----------
+// 只做「建议」，解析不出来就留空，让用户自己填 —— 宁可空着也不填错
+const CITY_WORDS = [
+  "北京", "上海", "天津", "重庆", "广州", "深圳", "杭州", "南京", "苏州", "成都", "武汉",
+  "西安", "长沙", "合肥", "厦门", "青岛", "济南", "郑州", "大连", "无锡", "珠海", "佛山", "东莞",
+];
+const SOURCE_BY_HOST = [
+  [/zhipin\.com$/, "BOSS直聘"],
+  [/lagou\.com$/, "拉勾"],
+  [/shixiseng\.com$/, "实习僧"],
+  [/nowcoder\.com$/, "牛客"],
+  [/liepin\.com$/, "猎聘"],
+  [/51job\.com$/, "前程无忧"],
+  [/zhihu\.com$/, "知乎"],
+  [/^mp\.weixin\.qq\.com$/, "公众号"],
+];
+
+app.post("/api/jobs/parse-link", requireAuth, async (req, res) => {
+  const url = String(req.body.url || "").trim();
+  if (!/^https?:\/\//.test(url)) return res.status(400).json({ error: "请输入 http/https 链接" });
+  let host = "";
+  try {
+    host = new URL(url).hostname.replace(/^www\./, "");
+  } catch {
+    return res.status(400).json({ error: "链接格式不对" });
+  }
+
+  const source = (SOURCE_BY_HOST.find(([re]) => re.test(host)) || [])[1] || "";
+
+  let html = "";
+  try {
+    const resp = await fetch(url, {
+      signal: AbortSignal.timeout(8000),
+      headers: { "User-Agent": "Mozilla/5.0 (compatible; WorkbenchBot/1.0)" },
+    });
+    html = (await resp.text()).slice(0, 500000);
+  } catch {
+    // 抓不到页面就只回源站信息，前端仍可手填
+    return res.json({ company: "", position: "", city: "", publish_date: "", source, link: url, fetched: false });
+  }
+
+  const pick = (...patterns) => {
+    for (const re of patterns) {
+      const m = html.match(re);
+      if (m && m[1]) return decodeEntities(m[1]);
+    }
+    return "";
+  };
+
+  const rawTitle =
+    pick(/<meta[^>]+property=["']og:title["'][^>]+content=["']([^"']+)["']/i,
+         /<title[^>]*>([^<]+)<\/title>/i) || "";
+  const description =
+    pick(/<meta[^>]+property=["']og:description["'][^>]+content=["']([^"']*)["']/i,
+         /<meta[^>]+name=["']description["'][^>]+content=["']([^"']*)["']/i) || "";
+
+  // 标题形如「AI 产品经理（校招）- 某某科技 - 北京 | BOSS直聘」
+  const title = rawTitle
+    .replace(/\s*[|｜—–]\s*(BOSS直聘|拉勾|实习僧|牛客|猎聘|前程无忧|智联招聘).*$/i, "")
+    .replace(/\s*[-_]\s*(招聘|校园招聘|社会招聘)$/i, "")
+    .trim();
+  const segs = title.split(/\s*[-|｜·]\s*/).map((s) => s.trim()).filter(Boolean);
+
+  let position = "";
+  let company = "";
+  if (segs.length >= 2) {
+    // 一段是城市就跳过，剩下两段按「岗位在前、公司在后」猜
+    const rest = segs.filter((s) => !CITY_WORDS.includes(s) && !/^\d/.test(s));
+    position = rest[0] || "";
+    company = rest[1] || "";
+  } else if (segs.length === 1) {
+    position = segs[0];
+  }
+
+  // 正文里更可靠的兜底：「公司：xxx」「所属公司 xxx」
+  const cmpFromBody = description.match(/(?:公司名称|所属公司|公司)[：:]\s*([^\s，。；、|｜]{2,20})/);
+  if (!company && cmpFromBody) company = cmpFromBody[1];
+
+  const city = CITY_WORDS.find((c) => title.includes(c) || description.includes(c)) || "";
+  const pubMatch = html.match(/(20\d{2})[-/年](\d{1,2})[-/月](\d{1,2})/);
+  const publish_date = pubMatch
+    ? `${pubMatch[1]}-${String(Number(pubMatch[2])).padStart(2, "0")}-${String(Number(pubMatch[3])).padStart(2, "0")}`
+    : "";
+
+  res.json({
+    company,
+    position,
+    city,
+    publish_date,
+    source,
+    link: url,
+    fetched: true,
+    title: rawTitle.slice(0, 200),
+  });
+});
+
 // ---------- 开放 API v1（Bearer 令牌，供脚本 / 快捷指令 / AI 调用） ----------
 // 可通过 API 访问的集合（白名单：不开放邀请码、系统设置等敏感数据）
 const API_COLLECTIONS = new Set([
@@ -881,35 +984,53 @@ app.get("/api/v1/:coll", requireApi("read"), (req, res) => {
   res.json({ total: rows.length, rows: rows.slice(offset, offset + limit) });
 });
 
+app.post("/api/v1/:coll/bulk", requireApi("write"), (req, res) => {
+  const coll = apiCollParam(req, res);
+  if (!coll) return;
+  const rows = Array.isArray(req.body?.rows) ? req.body.rows : null;
+  if (!rows) return res.status(400).json({ error: "需要 rows 数组" });
+  if (!rows.length) return res.status(400).json({ error: "rows 不能为空" });
+  if (rows.length > 200) return res.status(400).json({ error: "单次最多 200 条" });
+  const now = new Date().toISOString();
+  tx((db) => rows.map((body) => insertOneInto(db, req, coll, body, now).row))
+    .then((saved) => res.status(201).json({ rows: saved, count: saved.length }))
+    .catch((e) => res.status(500).json({ error: e.message }));
+});
+
+app.patch("/api/v1/:coll/bulk", requireApi("write"), (req, res) => {
+  const coll = apiCollParam(req, res);
+  if (!coll) return;
+  const args = bulkIds(req, res);
+  if (!args) return;
+  const { ids, patch } = args;
+  const now = new Date().toISOString();
+  tx((db) => {
+    const failed = [];
+    ids.forEach((id) => {
+      if (!updateOneIn(db, req, coll, id, patch, now)) failed.push(id);
+    });
+    return { changed: ids.length - failed.length, failed };
+  })
+    .then((r) => res.json(r))
+    .catch((e) => res.status(400).json({ error: e.message }));
+});
+
 app.post("/api/v1/:coll", requireApi("write"), (req, res) => {
   const coll = apiCollParam(req, res);
   if (!coll) return;
-  const body = req.body || {};
-  const row = { user_id: req.user.id, created_at: new Date().toISOString() };
-  COLLECTIONS[coll].forEach((f) => {
-    if (body[f] !== undefined) row[f] = body[f];
-  });
-  tx((db) => {
-    row.id = nextId(db, coll);
-    db[coll].push(row);
-    return row;
-  })
-    .then((r) => res.status(201).json({ row: r }))
+  const now = new Date().toISOString();
+  tx((db) => insertOneInto(db, req, coll, req.body || {}, now))
+    .then((r) => res.status(201).json({ row: r.row, deduped: r.deduped }))
     .catch((e) => res.status(500).json({ error: e.message }));
 });
 
 app.patch("/api/v1/:coll/:id", requireApi("write"), (req, res) => {
   const coll = apiCollParam(req, res);
   if (!coll) return;
-  const id = Number(req.params.id);
-  const body = req.body || {};
+  const now = new Date().toISOString();
   tx((db) => {
-    const row = db[coll].find((r) => r.id === id && r.user_id === req.user.id);
+    const row = updateOneIn(db, req, coll, req.params.id, req.body || {}, now);
     if (!row) throw new Error("记录不存在");
-    COLLECTIONS[coll].forEach((f) => {
-      if (body[f] !== undefined) row[f] = body[f];
-    });
-    row.updated_at = new Date().toISOString();
     return row;
   })
     .then((r) => res.json({ row: r }))
@@ -929,6 +1050,43 @@ app.delete("/api/v1/:coll/:id", requireApi("write"), (req, res) => {
     .then(() => res.json({ ok: true }))
     .catch((e) => res.status(400).json({ error: e.message }));
 });
+
+// ---------- 求职状态分组（与前端 jobs.js 的语义保持一致） ----------
+// 状态可以在设置里自定义，group 决定它落在「未投 / 已投等消息 / 流程中 / 结束」哪一段。
+// 配置缺失或没写 group 时按默认表推断，保证老数据也能算对。
+const DEFAULT_STATUS_GROUP = {
+  待投递: "todo",
+  简历筛选中: "applied",
+  测评中: "applied",
+  笔试中: "progress",
+  一面中: "progress",
+  二面中: "progress",
+  三面中: "progress",
+  HR面中: "progress",
+  Offer: "closed",
+  已取消: "closed",
+};
+
+function jobStatusGroup(db, uid, status) {
+  const conf = db.settings.find((r) => r.user_id === uid && r.key === "job_statuses");
+  if (conf?.value) {
+    try {
+      const list = JSON.parse(conf.value);
+      const hit = Array.isArray(list) ? list.find((s) => s && s.name === status) : null;
+      if (hit?.group) return hit.group;
+    } catch {
+      /* 坏配置忽略，回落默认表 */
+    }
+  }
+  return DEFAULT_STATUS_GROUP[status] || "";
+}
+
+// 状态一变就记时间戳：「卡住了」按 status_changed_at 算，结束态再记 rejected_at
+function applyStatusSideEffects(db, uid, row) {
+  const now = new Date().toISOString();
+  row.status_changed_at = now;
+  row.rejected_at = jobStatusGroup(db, uid, row.status) === "closed" ? now : "";
+}
 
 // ---------- 通用 CRUD ----------
 function collParam(req, res) {
@@ -951,20 +1109,103 @@ app.get("/api/data/:coll", requireUserOrApi("read"), (req, res) => {
   res.json({ rows });
 });
 
-app.post("/api/data/:coll", requireUserOrApi("write"), (req, res) => {
-  const coll = collParam(req, res);
-  if (!coll) return;
-  const body = req.body || {};
-  const row = { user_id: req.user.id, created_at: new Date().toISOString() };
+// ---------- 写入内核（/api/data 与 /api/v1 共用，行为必须一致） ----------
+function whitelistFields(coll, body) {
+  const row = {};
   COLLECTIONS[coll].forEach((f) => {
     if (body[f] !== undefined) row[f] = body[f];
   });
+  return row;
+}
+
+// 插一行：默认值 + 进展事件去重（同一岗位 3 秒内相同标题视为重复提交）
+function insertOneInto(db, req, coll, body, now) {
+  const row = { user_id: req.user.id, created_at: now, ...whitelistFields(coll, body) };
+  if (coll === "job_apps") {
+    if (row.status === undefined) row.status = "待投递";
+    row.status_changed_at = now;
+  }
+  if (coll === "job_events" && row.app_id !== undefined) {
+    const dup = db.job_events.find(
+      (r) =>
+        r.user_id === req.user.id &&
+        String(r.app_id) === String(row.app_id) &&
+        r.title === row.title &&
+        new Date(r.created_at || 0).getTime() >= Date.now() - 3000
+    );
+    if (dup) return { row: dup, deduped: true };
+  }
+  row.id = nextId(db, coll);
+  db[coll].push(row);
+  return { row, deduped: false };
+}
+
+// 改一行：状态变了才动 status_changed_at / rejected_at
+function updateOneIn(db, req, coll, id, patch, now) {
+  const row = db[coll].find((r) => r.id === Number(id) && r.user_id === req.user.id);
+  if (!row) return null;
+  const prevStatus = row.status;
+  Object.assign(row, whitelistFields(coll, patch));
+  row.updated_at = now;
+  if (coll === "job_apps" && patch.status !== undefined && row.status !== prevStatus) {
+    applyStatusSideEffects(db, req.user.id, row);
+  }
+  return row;
+}
+
+function bulkIds(req, res) {
+  const ids = Array.isArray(req.body?.ids) ? req.body.ids.map(Number).filter((n) => n) : [];
+  const patch = req.body?.patch && typeof req.body.patch === "object" ? req.body.patch : null;
+  if (!ids.length) {
+    res.status(400).json({ error: "需要 ids 数组" });
+    return null;
+  }
+  if (!patch) {
+    res.status(400).json({ error: "需要 patch 对象" });
+    return null;
+  }
+  return { ids, patch };
+}
+
+// 批量写入：事务内全成功或全失败。前端不再 for 循环串行 PATCH（10 条 = 10 次请求 + 10 次广播）
+app.post("/api/data/:coll/bulk", requireUserOrApi("write"), (req, res) => {
+  const coll = collParam(req, res);
+  if (!coll) return;
+  const rows = Array.isArray(req.body?.rows) ? req.body.rows : null;
+  if (!rows) return res.status(400).json({ error: "需要 rows 数组" });
+  if (!rows.length) return res.status(400).json({ error: "rows 不能为空" });
+  if (rows.length > 200) return res.status(400).json({ error: "单次最多 200 条" });
+  const now = new Date().toISOString();
+  tx((db) => rows.map((body) => insertOneInto(db, req, coll, body, now).row))
+    .then((saved) => res.json({ rows: saved, count: saved.length }))
+    .catch((e) => res.status(500).json({ error: e.message }));
+});
+
+// 批量更新：同 patch 打到多个 id 上，返回 failed 便于前端区分「部分成功」
+app.patch("/api/data/:coll/bulk", requireUserOrApi("write"), (req, res) => {
+  const coll = collParam(req, res);
+  if (!coll) return;
+  const args = bulkIds(req, res);
+  if (!args) return;
+  const { ids, patch } = args;
+  const now = new Date().toISOString();
   tx((db) => {
-    row.id = nextId(db, coll);
-    db[coll].push(row);
-    return row;
+    const failed = [];
+    ids.forEach((id) => {
+      if (!updateOneIn(db, req, coll, id, patch, now)) failed.push(id);
+    });
+    return { changed: ids.length - failed.length, failed };
   })
-    .then((r) => res.json({ row: r }))
+    .then((r) => res.json(r))
+    .catch((e) => res.status(400).json({ error: e.message }));
+});
+
+app.post("/api/data/:coll", requireUserOrApi("write"), (req, res) => {
+  const coll = collParam(req, res);
+  if (!coll) return;
+  const now = new Date().toISOString();
+  tx((db) => insertOneInto(db, req, coll, req.body || {}, now))
+    .then((r) => res.json({ row: r.row, deduped: r.deduped }))
     .catch((e) => res.status(500).json({ error: e.message }));
 });
 
@@ -976,10 +1217,15 @@ app.patch("/api/data/:coll/:id", requireUserOrApi("write"), (req, res) => {
   tx((db) => {
     const row = db[coll].find((r) => r.id === id && r.user_id === req.user.id);
     if (!row) throw new Error("记录不存在");
+    const prevStatus = row.status;
     COLLECTIONS[coll].forEach((f) => {
       if (body[f] !== undefined) row[f] = body[f];
     });
     row.updated_at = new Date().toISOString();
+    // 状态变了才动时间戳：status_changed_at 用来算「多久没动静」，rejected_at 用来统计淘汰
+    if (coll === "job_apps" && body.status !== undefined && row.status !== prevStatus) {
+      applyStatusSideEffects(db, req.user.id, row);
+    }
     return row;
   })
     .then((r) => res.json({ row: r }))
@@ -993,10 +1239,18 @@ app.delete("/api/data/:coll/:id", requireUserOrApi("write"), (req, res) => {
   tx((db) => {
     const idx = db[coll].findIndex((r) => r.id === id && r.user_id === req.user.id);
     if (idx === -1) throw new Error("记录不存在");
-    db[coll].splice(idx, 1);
-    return true;
+    const [removed] = db[coll].splice(idx, 1);
+    return removed;
   })
-    .then(() => res.json({ ok: true }))
+    .then((removed) => {
+      // 简历删掉后顺手删文件，否则 uploads 里会越堆越多没人认领的 PDF
+      if (coll === "resumes" && removed?.file_url && /^\/uploads\//.test(removed.file_url)) {
+        fs.promises
+          .unlink(path.join(UPLOAD_DIR, path.basename(removed.file_url)))
+          .catch(() => {});
+      }
+      res.json({ ok: true });
+    })
     .catch((e) => res.status(400).json({ error: e.message }));
 });
 

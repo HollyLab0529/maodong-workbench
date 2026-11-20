@@ -237,3 +237,125 @@ describe("演示站模式（DEMO_MODE）", () => {
     assert.equal(r.status, 403);
   });
 });
+
+describe("求职看板 B0：批量写入、状态时间戳、事件去重、删简历清文件", () => {
+  const P = 3313;
+  const B = `http://127.0.0.1:${P}`;
+  let dataDir, server, cookie;
+
+  before(async () => {
+    dataDir = mkdtempSync(path.join(tmpdir(), "wb-jobs-"));
+    server = startServer({ port: P, dataDir });
+    await waitHealthy(B, server.getStderr);
+    const reg = await req(B, "/api/auth/register", {
+      method: "POST",
+      body: { email: "jobs@test.dev", password: "secret123" },
+    });
+    assert.equal(reg.status, 200, reg.text);
+    cookie = cookieOf(reg.res);
+  });
+
+  after(async () => {
+    await stopServer(server.child);
+    rmSync(dataDir, { recursive: true, force: true });
+  });
+
+  test("批量新增：默认状态与 status_changed_at 由服务端补", async () => {
+    const r = await req(B, "/api/data/job_apps/bulk", {
+      method: "POST",
+      cookie,
+      body: {
+        rows: [
+          { company: "字节跳动", position: "AI 产品经理", tier: "冲刺", city: "北京" },
+          { company: "某创业公司", position: "产品实习" },
+          { company: "快手", position: "策略产品", batch: "包-2026-11-20" },
+        ],
+      },
+    });
+    assert.equal(r.status, 200, r.text);
+    assert.equal(r.json.count, 3);
+    assert.ok(r.json.rows.every((x) => x.status === "待投递"), "未填状态应默认待投递");
+    assert.ok(r.json.rows.every((x) => x.status_changed_at), "新建应写 status_changed_at");
+    assert.equal(r.json.rows[0].user_id, 1);
+  });
+
+  test("批量新增超过 200 条应拒绝", async () => {
+    const rows = Array.from({ length: 201 }, (_, i) => ({ company: `公司${i}` }));
+    const r = await req(B, "/api/data/job_apps/bulk", { method: "POST", cookie, body: { rows } });
+    assert.equal(r.status, 400);
+  });
+
+  test("批量更新：返回 changed / failed，状态变了才写 rejected_at", async () => {
+    const list = await req(B, "/api/data/job_apps", { cookie });
+    const ids = list.json.rows.map((x) => x.id);
+    const r = await req(B, "/api/data/job_apps/bulk", {
+      method: "PATCH",
+      cookie,
+      body: { ids: [ids[0], ids[1], 99999], patch: { status: "已取消" } },
+    });
+    assert.equal(r.status, 200, r.text);
+    assert.equal(r.json.changed, 2);
+    assert.deepEqual(r.json.failed, [99999]);
+
+    const after = await req(B, "/api/data/job_apps", { cookie });
+    const closed = after.json.rows.filter((x) => x.status === "已取消");
+    assert.equal(closed.length, 2);
+    assert.ok(closed.every((x) => x.rejected_at), "进入已取消应写 rejected_at");
+
+    // 从 closed 改回来要清空 rejected_at
+    const back = await req(B, `/api/data/job_apps/${closed[0].id}`, {
+      method: "PATCH",
+      cookie,
+      body: { status: "一面中" },
+    });
+    assert.equal(back.status, 200, back.text);
+    assert.equal(back.json.row.rejected_at, "");
+    assert.ok(back.json.row.status_changed_at);
+  });
+
+  test("没改状态时不动 status_changed_at", async () => {
+    const list = await req(B, "/api/data/job_apps", { cookie });
+    const row = list.json.rows.find((x) => x.status === "一面中");
+    const r = await req(B, `/api/data/job_apps/${row.id}`, {
+      method: "PATCH",
+      cookie,
+      body: { note: "只改备注" },
+    });
+    assert.equal(r.json.row.status_changed_at, row.status_changed_at);
+  });
+
+  test("进展事件去重：3 秒内同标题只留一条", async () => {
+    const list = await req(B, "/api/data/job_apps", { cookie });
+    const appId = list.json.rows[0].id;
+    const body = { app_id: appId, kind: "投递", title: "BOSS 直聊打招呼" };
+    const first = await req(B, "/api/data/job_events", { method: "POST", cookie, body });
+    const second = await req(B, "/api/data/job_events", { method: "POST", cookie, body });
+    assert.equal(first.status, 200, first.text);
+    assert.equal(second.json.deduped, true);
+    assert.equal(second.json.row.id, first.json.row.id);
+
+    const events = await req(B, "/api/data/job_events", { cookie });
+    assert.equal(events.json.rows.filter((e) => e.app_id === appId).length, 1);
+  });
+
+  test("删除简历时顺手删上传文件", async () => {
+    const { writeFileSync, existsSync, mkdirSync } = require("node:fs");
+    const uploads = path.join(dataDir, "uploads");
+    mkdirSync(uploads, { recursive: true });
+    const fileName = "resume-test.pdf";
+    writeFileSync(path.join(uploads, fileName), "pdf");
+
+    const created = await req(B, "/api/data/resumes", {
+      method: "POST",
+      cookie,
+      body: { name: "测试简历", file_url: `/uploads/${fileName}` },
+    });
+    assert.equal(created.status, 200, created.text);
+    assert.ok(existsSync(path.join(uploads, fileName)));
+
+    const del = await req(B, `/api/data/resumes/${created.json.row.id}`, { method: "DELETE", cookie });
+    assert.equal(del.status, 200, del.text);
+    await sleep(100);
+    assert.equal(existsSync(path.join(uploads, fileName)), false, "文件应被删除");
+  });
+});

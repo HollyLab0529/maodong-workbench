@@ -1,288 +1,235 @@
+// 求职看板容器：只管数据和弹窗，四个工作区各自负责自己的排布。
+// 以前这里是 1100 行的大文件，筛选口径散在各处，改一个地方就漏一个地方。
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { PageHeader } from "../../components/Layout";
-import { listRows, insertRow, updateRow, deleteRow, todayStr } from "../../api";
+import { listRows, insertRow, updateRow, deleteRow, bulkUpdateRows, todayStr } from "../../api";
 import { useLiveReload } from "../../live";
-import { Button, Input, Textarea, Label, Modal, EmptyState, Loading, toast, Checkbox } from "../../components/ui";
+import { Button, Input, Modal, Loading, toast } from "../../components/ui";
+import { Plus, History, Pencil, Trash2, CalendarCheck2, X } from "lucide-react";
+import { useJobStatuses } from "../../colors";
 import {
-  Plus, Trash2, Pencil, History, Building2, Link2, MapPin,
-  Search, LayoutGrid, CalendarDays, CalendarCheck2, X, List, ChevronDown, ExternalLink,
-} from "lucide-react";
-import { JOB_STATUSES, JOB_STATUS_TONE, jobStatusStyle, useJobStatuses, toneChip, TONE_FG } from "../../colors";
+  STATUS_GROUPS, TIERS, dayDiff, groupByBatch, groupOf, isApplied, isPending, isWaiting, newJobDefaults,
+} from "../../jobs";
+import TodayView from "./TodayView";
+import PackageView from "./PackageView";
+import FollowUpView from "./FollowUpView";
+import AllView from "./AllView";
+import JobForm from "./JobForm";
+import ApplyMode from "./ApplyMode";
+import BulkImport from "./BulkImport";
+import { StatusPill } from "./bits";
 
-export const STATUSES = JOB_STATUSES;
-export const STATUS_STYLE = Object.fromEntries(JOB_STATUSES.map((s) => [s, jobStatusStyle(s)]));
-
-// 状态定死 10 档，脏数据归一到最接近的档
-export function normStatus(raw) {
-  const t = String(raw || "").trim();
-  if (JOB_STATUSES.includes(t)) return t;
-  if (/offer/i.test(t)) return "Offer";
-  if (/取消|结束|放弃|挂起|拒绝|淘汰/.test(t)) return "已取消";
-  if (/hr\s*面/i.test(t)) return "HR面中";
-  if (/三面|终面/.test(t)) return "三面中";
-  if (/二面/.test(t)) return "二面中";
-  if (/一面|初面/.test(t)) return "一面中";
-  if (/笔试/.test(t)) return "笔试中";
-  if (/测评|测试/.test(t)) return "测评中";
-  if (/简历筛选|筛选中|已投|投递中/.test(t)) return "简历筛选中";
-  return "待投递";
-}
-const STAGE_SHORT = {
-  待投递: "待", 简历筛选中: "筛", 测评中: "测", 笔试中: "笔", 一面中: "一",
-  二面中: "二", 三面中: "三", HR面中: "HR", Offer: "录", 已取消: "×",
-};
-const stageOf = (a) => normStatus(a.status);
-// 还没投出去：时间维度只统计这些人，已投的不会赖在「今日待投」里
-const isPending = (a) => stageOf(a) === "待投递" && !a.applied_date;
-
-// 档位：冲刺 / 主力 / 保底，留空表示未分档
-export const TIERS = ["冲刺", "主力", "保底"];
-const TIER_TONE = { 冲刺: "rose", 主力: "amber", 保底: "blue" };
-const tierStyle = (t) => (TIER_TONE[t] ? toneChip(TIER_TONE[t]) : "");
-
-const EMPTY = {
-  company: "", position: "", jd_code: "", location: "", business: "", link: "",
-  applied_date: "", plan_date: "", publish_date: "", tier: "", batch: "", resume_id: "", status: "待投递", note: "",
-};
-
-const pad = (n) => String(n).padStart(2, "0");
-function dayDiff(from, to) {
-  const [y1, m1, d1] = String(from).split("-").map(Number);
-  const [y2, m2, d2] = String(to).split("-").map(Number);
-  return Math.round((new Date(y2, m2 - 1, d2) - new Date(y1, m1 - 1, d1)) / 86400000);
-}
-
-// 岗位发布时间：7 天内算新岗（优先投），超过 45 天大概率是常驻岗。
-// 只认招聘站上真实写的发布时间，抓不到就留空（不拿入库时间冒充）。
-function publishInfo(a, today) {
-  const d = a.publish_date;
-  if (!d) return null;
-  const days = dayDiff(d, today);
-  return { d, days, fresh: days >= 0 && days <= 7, stale: days > 45 };
-}
-
-// 时间维度：只数还没投出去的
-const RANGES = [
-  { key: "today", label: "今日待投" },
-  { key: "overdue", label: "逾期未投" },
-  { key: "unscheduled", label: "未排期" },
-  { key: "all", label: "全部" },
+const TABS = [
+  { key: "today", label: "今天", hint: "今天投哪几家" },
+  { key: "package", label: "本包", hint: "这一包投到哪了" },
+  { key: "followup", label: "跟进", hint: "谁还没回我" },
+  { key: "all", label: "全量", hint: "我总共有哪些" },
 ];
-function matchRange(a, range, today) {
-  if (range === "all") return true;
-  if (!isPending(a)) return false;
-  if (range === "today") return a.plan_date === today;
-  if (range === "overdue") return !!a.plan_date && a.plan_date < today;
-  if (range === "unscheduled") return !a.plan_date;
-  return true;
+
+const TAB_KEY = "wb.jobs.tab";
+
+// 进展里贴的链接自动变成可点，别让人手动复制粘贴
+function AutoLink({ text, className = "" }) {
+  const parts = String(text || "").split(/(https?:\/\/[^\s）)]+)/g);
+  return (
+    <p className={`break-words ${className}`}>
+      {parts.map((seg, i) =>
+        /^https?:\/\//.test(seg) ? (
+          <a key={i} href={seg} target="_blank" rel="noreferrer" className="text-terracotta-600 underline hover:text-terracotta-700">
+            {seg}
+          </a>
+        ) : (
+          <span key={i}>{seg}</span>
+        )
+      )}
+    </p>
+  );
 }
 
-export default function Board() {
-  const { statuses, styleOf } = useJobStatuses();
-  const [apps, setApps] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [formOpen, setFormOpen] = useState(false);
-  const [form, setForm] = useState(EMPTY);
-  const [editingId, setEditingId] = useState(null);
-  const [saving, setSaving] = useState(false);
-  const [detail, setDetail] = useState(null);
-  const [events, setEvents] = useState([]);
-  const [resumes, setResumes] = useState([]);
-  const [ev, setEv] = useState({ title: "", event_date: "", note: "" });
-
-  // 视图与筛选：支持从地址栏带初始值（#/jobs?view=cards&range=all），作品集嵌入和分享链接用
-  // HashRouter 下 query 在 hash 里（如 #/jobs?view=cards），window.location.search 读不到
-  const bootQuery = new URLSearchParams(window.location.hash.split("?")[1] || "");
-  const bootView = bootQuery.get("view");
-  const bootRange = bootQuery.get("range");
-  const [view, setView] = useState(() =>
-    ["list", "cards", "calendar"].includes(bootView) ? bootView : "list"
-  );
-  const [range, setRange] = useState(() =>
-    ["today", "overdue", "unscheduled", "all"].includes(bootRange) ? bootRange : "today"
-  );
-  const [stageFilter, setStageFilter] = useState("");
-  const [q, setQ] = useState("");
-  const [fTier, setFTier] = useState("");
-  const [fBatch, setFBatch] = useState("");
-  const [sel, setSel] = useState(() => new Set());
-  const [bulkDate, setBulkDate] = useState("");
-  const [statusTarget, setStatusTarget] = useState(null);
-  const [dayDetail, setDayDetail] = useState(null);
+export default function Board({ resumeFocus }) {
+  const cfg = useJobStatuses();
   const today = todayStr();
+  const [apps, setApps] = useState([]);
+  const [resumes, setResumes] = useState([]);
+  const [policy, setPolicy] = useState({});
+  const [loading, setLoading] = useState(true);
 
-  const load = async () => {
+  const [tab, setTab] = useState(() => {
     try {
-      const [rows, rs] = await Promise.all([listRows("job_apps"), listRows("resumes").catch(() => [])]);
+      return localStorage.getItem(TAB_KEY) || "today";
+    } catch {
+      return "today";
+    }
+  });
+  const [sel, setSel] = useState(() => new Set());
+  const [detailId, setDetailId] = useState(null);
+  const [events, setEvents] = useState([]);
+  const [ev, setEv] = useState({ title: "", event_date: "", note: "" });
+  const [evSaving, setEvSaving] = useState(false);
+  const [evEditId, setEvEditId] = useState(null);
+  const [evStatus, setEvStatus] = useState("");
+  const [statusTargetId, setStatusTargetId] = useState(null);
+  const [formOpen, setFormOpen] = useState(false);
+  const [formInitial, setFormInitial] = useState(null);
+  const [editingId, setEditingId] = useState(null);
+  const [applyIds, setApplyIds] = useState(null);
+  const [bulkDate, setBulkDate] = useState("");
+  const [importOpen, setImportOpen] = useState(false);
+
+  const detail = apps.find((a) => a.id === detailId) || null;
+  const statusTarget = apps.find((a) => a.id === statusTargetId) || null;
+
+  const load = async ({ silent = false } = {}) => {
+    try {
+      const [rows, rs, settings] = await Promise.all([
+        listRows("job_apps"),
+        listRows("resumes").catch(() => []),
+        listRows("settings").catch(() => []),
+      ]);
       setApps(rows);
       setResumes(rs);
+      const p = settings.find((s) => s.key === "job_policy");
+      if (p?.value) {
+        try {
+          setPolicy(JSON.parse(p.value));
+        } catch {
+          setPolicy({});
+        }
+      }
     } catch (e) {
-      toast.error("加载失败：" + e.message);
+      if (!silent) toast.error("加载失败：" + e.message);
     } finally {
       setLoading(false);
     }
   };
   useEffect(() => { load(); }, []);
-  useLiveReload(load);
+  useLiveReload(() => load({ silent: true }));
 
-  const resumeName = (a) => resumes.find((r) => r.id === Number(a.resume_id))?.name || "";
-
-  // 搜索 / 状态 / 档位 / 批次 先过一遍，时间范围的计数基于这一步的结果，保证数字与点进去看到的一致
-  const base = useMemo(() => {
-    const kw = q.trim().toLowerCase();
-    return apps.filter((a) => {
-      if (fTier && (a.tier || "") !== fTier) return false;
-      if (fBatch && (a.batch || "") !== fBatch) return false;
-      if (!kw) return true;
-      return [a.company, a.position, a.jd_code, a.location, a.business, a.note]
-        .some((v) => String(v || "").toLowerCase().includes(kw));
-    });
-  }, [apps, q, fTier, fBatch]);
-
-  // 时间卡计数基于「搜索 / 档位 / 批次」过滤后的结果，与点进去看到的数字一致
-  const counts = useMemo(
-    () => Object.fromEntries(RANGES.map((r) => [r.key, base.filter((a) => matchRange(a, r.key, today)).length])),
-    [base, today]
-  );
-  // 状态卡计数：不受时间维度影响，看的是全量里各档有多少人
-  const stageCounts = useMemo(() => {
-    const map = Object.fromEntries(JOB_STATUSES.map((n) => [n, 0]));
-    base.forEach((a) => { map[stageOf(a)] = (map[stageOf(a)] || 0) + 1; });
-    return map;
-  }, [base]);
-
-  const shown = useMemo(() => {
-    const rows = base
-      .filter((a) => matchRange(a, range, today))
-      .filter((a) => !stageFilter || stageOf(a) === stageFilter);
-    return rows.sort((a, b) => {
-      const ka = a.applied_date ? "9999-99-99" : a.plan_date || "9999-98-98";
-      const kb = b.applied_date ? "9999-99-99" : b.plan_date || "9999-98-98";
-      return ka.localeCompare(kb) || String(b.created_at || "").localeCompare(String(a.created_at || ""));
-    });
-  }, [base, range, stageFilter, today]);
-
-  const batchOptions = useMemo(
-    () => Array.from(new Set(apps.map((a) => a.batch).filter(Boolean))).sort(),
-    [apps]
-  );
-
-  const hasFilter = !!(stageFilter || fTier || fBatch || q.trim());
-
-  const openNew = () => {
-    setForm({
-      ...EMPTY,
-      resume_id: resumes.find((r) => r.in_use) ? String(resumes.find((r) => r.in_use).id) : "",
-      plan_date: range === "unscheduled" ? today : "",
-    });
-    setEditingId(null);
-    setFormOpen(true);
-  };
-  const openEdit = (a) => {
-    setForm({
-      company: a.company || "", position: a.position || "", jd_code: a.jd_code || "",
-      location: a.location || "", business: a.business || "", link: a.link || "",
-      applied_date: a.applied_date || "", plan_date: a.plan_date || "",
-      publish_date: a.publish_date || "",
-      tier: a.tier || "", batch: a.batch || "",
-      resume_id: a.resume_id ? String(a.resume_id) : "",
-      status: normStatus(a.status), note: a.note || "",
-    });
-    setEditingId(a.id);
-    setFormOpen(true);
-  };
-
-  // 首页直达：/jobs?id=xx 自动打开对应投递的详情面板
-  const [sp, setSp] = useSearchParams();
-  useEffect(() => {
-    const id = sp.get("id");
-    if (!id || loading) return;
-    const a = apps.find((x) => String(x.id) === id);
-    if (a) setDetail(a);
-    setSp({}, { replace: true });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loading, apps]);
-
-  const save = async () => {
-    if (!form.company.trim()) return toast.error("请填写公司名");
-    setSaving(true);
+  const changeTab = (key) => {
+    setTab(key);
+    setSel(new Set());
     try {
-      const payload = {
-        company: form.company.trim(),
-        position: form.position.trim(),
-        jd_code: form.jd_code.trim(),
-        location: form.location.trim(),
-        business: form.business.trim(),
-        link: form.link.trim(),
-        applied_date: form.applied_date,
-        plan_date: form.plan_date,
-        publish_date: form.publish_date || "",
-        tier: form.tier,
-        batch: form.batch.trim(),
-        resume_id: form.resume_id || "",
-        status: form.status,
-        note: form.note.trim(),
-        updated_at: new Date().toISOString(),
-      };
-      if (editingId) {
-        await updateRow("job_apps", editingId, payload);
-        toast.success("已更新");
-      } else {
-        await insertRow("job_apps", payload);
-        toast.success("已添加");
-      }
-      setFormOpen(false);
-      load();
-    } catch (e) {
-      toast.error("保存失败：" + e.message);
-    } finally {
-      setSaving(false);
+      localStorage.setItem(TAB_KEY, key);
+    } catch {
+      /* 无痕模式忽略 */
     }
   };
 
-  const remove = async (a) => {
+  // ===== 写入：先改本地再等服务器回真值，失败回滚 =====
+  const patchRow = async (id, patch) => {
+    const prev = apps.find((a) => a.id === id);
+    setApps((list) => list.map((a) => (a.id === id ? { ...a, ...patch } : a)));
+    try {
+      const saved = await updateRow("job_apps", id, patch);
+      setApps((list) => list.map((a) => (a.id === id ? saved : a)));
+      return saved;
+    } catch (e) {
+      if (prev) setApps((list) => list.map((a) => (a.id === id ? prev : a)));
+      toast.error("更新失败：" + e.message);
+      throw e;
+    }
+  };
+
+  const patchMany = async (ids, patch, tip) => {
+    if (!ids.length) return;
+    const prevById = new Map(apps.filter((a) => ids.includes(a.id)).map((a) => [a.id, a]));
+    // 乐观更新 + 就地盖返回值，不再整页重拉（一次拉全量太重，还会闪一下）
+    setApps((list) => list.map((a) => (ids.includes(a.id) ? { ...a, ...patch, updated_at: new Date().toISOString() } : a)));
+    try {
+      const r = await bulkUpdateRows("job_apps", ids, patch);
+      toast.success(tip || `已更新 ${r.changed} 家`);
+      if (r.failed?.length) {
+        const names = r.failed.map((id) => prevById.get(id)?.company || `#${id}`).join("、");
+        toast.error(`这些没改成功：${names}`);
+        await load({ silent: true }); // 部分成功时拉一次，别让本地和服务器不一致
+      }
+    } catch (e) {
+      // 请求本身失败：可能部分成功，回滚到服务器真相
+      toast.error("批量更新失败，可能部分成功，已刷新看看：" + e.message);
+      await load({ silent: true });
+    }
+  };
+
+  const markApplied = async (ids) => {
+    if (!ids.length) return;
+    const pendingIds = ids.filter((id) => {
+      const a = apps.find((x) => x.id === id);
+      return a && groupOf(a.status, cfg.config) === "todo";
+    });
+    const restIds = ids.filter((id) => !pendingIds.includes(id));
+    const firstApplied = (cfg.byGroup("applied")[0] || {}).name || cfg.statuses[1] || cfg.statuses[0];
+    try {
+      if (pendingIds.length) await patchMany(pendingIds, { applied_date: today, status: firstApplied }, `${pendingIds.length} 家已标记投出`);
+      if (restIds.length) await patchMany(restIds, { applied_date: today }, `已补上投递日期：${restIds.length} 家`);
+      if (ids.length === 1) toast.success("已标记为已投");
+    } catch {
+      /* patchMany 里已经报错 */
+    }
+  };
+
+  const removeRow = async (id) => {
+    const a = apps.find((x) => x.id === id);
+    if (!a) return;
     if (!window.confirm(`确定删除「${a.company}」的记录？`)) return;
     try {
-      await deleteRow("job_apps", a.id);
-      toast.success("已删除");
-      setDetail(null);
+      await deleteRow("job_apps", id);
+      setApps((list) => list.filter((x) => x.id !== id));
+      if (detailId === id) setDetailId(null);
       setSel((prev) => {
         const next = new Set(prev);
-        next.delete(a.id);
+        next.delete(id);
         return next;
       });
-      load();
+      toast.success("已删除");
     } catch (e) {
       toast.error("删除失败：" + e.message);
     }
   };
 
+  // ===== 弹窗 =====
+  // 时间线按事件日期排（没填日期回落到写入时间），新的在上
+  const sortEvents = (list) =>
+    [...list].sort((a, b) => {
+      const ka = a.event_date || String(a.created_at || "").slice(0, 10);
+      const kb = b.event_date || String(b.created_at || "").slice(0, 10);
+      return String(kb).localeCompare(String(ka)) || String(b.created_at || "").localeCompare(String(a.created_at || ""));
+    });
+
   const openDetail = async (a) => {
-    setDetail(a);
-    setEv({ title: "", event_date: "", note: "" });
+    setDetailId(a.id);
+    setEv({ title: "", event_date: today, note: "" });
+    setEvEditId(null);
+    setEvStatus("");
     try {
       const all = await listRows("job_events");
-      setEvents(all.filter((e) => Number(e.app_id) === a.id).reverse());
+      setEvents(sortEvents(all.filter((e) => Number(e.app_id) === a.id)));
     } catch {
       setEvents([]);
     }
   };
 
-  const [evSaving, setEvSaving] = useState(false);
   const addEvent = async () => {
-    if (evSaving) return; // 防双击重复提交（曾同一秒写入两条相同记录）
+    if (evSaving || !detail) return;
     if (!ev.title.trim()) return toast.error("请填写进展内容");
     setEvSaving(true);
     try {
-      await insertRow("job_events", {
-        app_id: detail.id,
-        title: ev.title.trim(),
-        event_date: ev.event_date || "",
-        note: ev.note.trim(),
-      });
-      toast.success("已记录进展");
-      openDetail(detail);
+      const payload = { app_id: detail.id, title: ev.title.trim(), event_date: ev.event_date || today, note: ev.note.trim() };
+      // 改一条：更新后按日期重排；新增：插进去再排
+      const row = evEditId
+        ? await updateRow("job_events", evEditId, payload)
+        : await insertRow("job_events", payload);
+      setEvents((list) => sortEvents(evEditId ? list.map((x) => (x.id === row.id ? row : x)) : [row, ...list]));
+      setEv({ title: "", event_date: today, note: "" });
+      setEvEditId(null);
+      toast.success(evEditId ? "已更新这条进展" : "已记录进展");
+      // 勾了推进状态就顺手改看板，不勾不动
+      if (evStatus) {
+        const target = evStatus;
+        setEvStatus("");
+        await patchRow(detail.id, { status: target });
+        toast.success(`看板状态已推进到「${target}」`);
+      }
     } catch (e) {
       toast.error("保存失败：" + e.message);
     } finally {
@@ -290,668 +237,264 @@ export default function Board() {
     }
   };
 
-  const changeStatus = async (a, status) => {
+  const editEvent = (item) => {
+    setEvEditId(item.id);
+    setEv({ title: item.title || "", event_date: item.event_date || today, note: item.note || "" });
+  };
+
+  const removeEvent = async (item) => {
+    if (!window.confirm("删除这条进展？")) return;
     try {
-      await updateRow("job_apps", a.id, { status, updated_at: new Date().toISOString() });
-      load();
-      if (detail && detail.id === a.id) setDetail({ ...detail, status });
+      await deleteRow("job_events", item.id);
+      setEvents((list) => list.filter((x) => x.id !== item.id));
+      if (evEditId === item.id) { setEvEditId(null); setEv({ title: "", event_date: today, note: "" }); }
+      toast.success("已删除");
     } catch (e) {
-      toast.error("更新失败：" + e.message);
+      toast.error("删除失败：" + e.message);
     }
   };
 
-  // 列表里的状态胶囊：选一档就存，进到「待投递」以外自动补投递日期
-  const pickStatus = async (a, status) => {
-    const patch = { status, updated_at: new Date().toISOString() };
-    if (status === "待投递") patch.applied_date = "";
-    else if (!a.applied_date) patch.applied_date = today;
-    try {
-      await updateRow("job_apps", a.id, patch);
-      setStatusTarget(null);
-      if (detail && detail.id === a.id) setDetail({ ...detail, ...patch });
-      load();
-    } catch (e) {
-      toast.error("更新失败：" + e.message);
-    }
-  };
-
-  // ===== 批量操作 =====
-  const toggleSel = (id) => setSel((prev) => {
-    const next = new Set(prev);
-    if (next.has(id)) next.delete(id); else next.add(id);
-    return next;
-  });
-
-  // 单条标记已投：填投递日期并把状态推进一步
-  const markApplied = async (a) => {
-    const next = { applied_date: today, status: stageOf(a) === "待投递" ? "简历筛选中" : stageOf(a) };
-    try {
-      await updateRow("job_apps", a.id, { ...next, updated_at: new Date().toISOString() });
-      toast.success("已标记为已投");
-      setDetail({ ...a, ...next });
-      load();
-    } catch (e) {
-      toast.error("更新失败：" + e.message);
-    }
-  };
-
-  const bulkApply = async (patch, tip) => {
-    if (!sel.size) return;
-    setSaving(true);
-    try {
-      const stamp = new Date().toISOString();
-      for (const id of sel) await updateRow("job_apps", id, { ...patch, updated_at: stamp });
-      toast.success(tip || `已更新 ${sel.size} 条`);
-      setSel(new Set());
-      setDetail(null);
-      load();
-    } catch (e) {
-      toast.error("批量更新失败：" + e.message);
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  // 批量标记已投：填投递日期，状态还在起点的自动前进一步，已在流程中的不动（避免把一面中重置回筛选中）
-  const bulkMarkApplied = async () => {
-    if (!sel.size) return;
-    setSaving(true);
-    try {
-      const stamp = new Date().toISOString();
-      for (const id of sel) {
-        const a = apps.find((x) => x.id === id);
-        if (!a) continue;
-        const stage = stageOf(a);
-        await updateRow("job_apps", id, {
-          applied_date: today,
-          status: stage === "待投递" ? "简历筛选中" : stage,
-          updated_at: stamp,
-        });
-      }
-      toast.success(`已标记 ${sel.size} 家为已投`);
-      setSel(new Set());
-      setDetail(null);
-      load();
-    } catch (e) {
-      toast.error("批量更新失败：" + e.message);
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  // ===== 卡片上的计划日期徽标 =====
-  const planBadge = (a) => {
-    if (a.applied_date) {
-      return <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] text-slate-500">已投 {String(a.applied_date).slice(5)}</span>;
-    }
-    if (!a.plan_date) return null;
-    const diff = dayDiff(today, a.plan_date);
-    if (diff === 0) {
-      return <span className="rounded-full bg-terracotta px-2 py-0.5 text-[11px] font-medium text-white">今天投</span>;
-    }
-    if (diff < 0) {
-      return <span className="rounded-full bg-red-50 px-2 py-0.5 text-[11px] font-medium text-red-500">逾期 {-diff} 天</span>;
-    }
-    return <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] text-slate-500">计划 {String(a.plan_date).slice(5)}</span>;
-  };
-
-  // 列表视图的计划列：已投看已投日期，没投的按今天 / 逾期上色
-  const planCell = (a) => {
-    if (a.applied_date) {
-      return <span className="whitespace-nowrap rounded-full bg-slate-100 px-2 py-0.5 text-[11px] text-slate-500">已投 {String(a.applied_date).slice(5)}</span>;
-    }
-    if (!a.plan_date) return <span className="text-slate-300">未排期</span>;
-    const diff = dayDiff(today, a.plan_date);
-    const cls = diff === 0
-      ? "bg-terracotta text-white"
-      : diff < 0
-        ? "bg-red-50 text-red-500"
-        : "bg-slate-100 text-slate-500";
-    return <span className={`whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] ${cls}`}>{String(a.plan_date).slice(5)}</span>;
-  };
-
-  // ===== 日历视图 =====
-  const [cursor, setCursor] = useState(() => today.slice(0, 7));
-  const calCells = useMemo(() => {
-    const [y, m] = cursor.split("-").map(Number);
-    const firstWeekday = (new Date(y, m - 1, 1).getDay() + 6) % 7; // 周一为 0
-    const days = new Date(y, m, 0).getDate();
-    const cells = [];
-    for (let i = 0; i < firstWeekday; i += 1) cells.push(null);
-    for (let d = 1; d <= days; d += 1) cells.push(`${y}-${pad(m)}-${pad(d)}`);
-    while (cells.length % 7 !== 0) cells.push(null);
-    return cells;
-  }, [cursor]);
-  const byPlanDate = useMemo(() => {
-    const map = {};
-    base.forEach((a) => {
-      if (!a.plan_date) return;
-      (map[a.plan_date] = map[a.plan_date] || []).push(a);
+  const openNew = (opts = {}) => {
+    const inUse = resumes.find((r) => r.in_use);
+    const base = newJobDefaults({
+      today,
+      batch: opts.batch,
+      batchDate: opts.batch && /20\d{2}-\d{2}-\d{2}/.test(opts.batch) ? String(opts.batch).match(/20\d{2}-\d{2}-\d{2}/)[0] : undefined,
+      resumeId: inUse?.id,
+      statuses: cfg.statuses,
     });
-    return map;
-  }, [base]);
-  const shiftMonth = (n) => {
-    const [y, m] = cursor.split("-").map(Number);
-    const d = new Date(y, m - 1 + n, 1);
-    setCursor(`${d.getFullYear()}-${pad(d.getMonth() + 1)}`);
+    setFormInitial(base);
+    setEditingId(null);
+    setFormOpen(true);
+  };
+
+  const openEdit = (a) => {
+    setFormInitial({
+      company: a.company || "", position: a.position || "", jd_code: a.jd_code || "",
+      location: a.location || "", business: a.business || "", link: a.link || "",
+      applied_date: a.applied_date || "", plan_date: a.plan_date || "", publish_date: a.publish_date || "",
+      tier: a.tier || "", batch: a.batch || "", batch_date: a.batch_date || "",
+      resume_id: a.resume_id ? String(a.resume_id) : "",
+      status: a.status || cfg.statuses[0], note: a.note || "",
+      city: a.city || "", city_multi: a.city_multi === "1", company_type: a.company_type || "",
+      source: a.source || "", next_action: a.next_action || "", next_action_date: a.next_action_date || "",
+    });
+    setEditingId(a.id);
+    setFormOpen(true);
+  };
+
+  const saveForm = async (payload, id) => {
+    if (id) {
+      const saved = await updateRow("job_apps", id, payload);
+      setApps((list) => list.map((a) => (a.id === id ? saved : a)));
+      toast.success("已更新");
+    } else {
+      const saved = await insertRow("job_apps", payload);
+      setApps((list) => [saved, ...list]);
+      toast.success("已添加");
+    }
+  };
+
+  const pickStatus = async (a, status) => {
+    setStatusTargetId(null);
+    try {
+      await patchRow(a.id, { status });
+      toast.success(`已改为「${status}」`);
+    } catch {
+      /* patchRow 已提示 */
+    }
+  };
+
+  // 首页直达：/jobs?id=xx 打开对应岗位
+  const [sp, setSp] = useSearchParams();
+  useEffect(() => {
+    const id = sp.get("id");
+    if (!id || loading) return;
+    const a = apps.find((x) => String(x.id) === id);
+    if (a) openDetail(a);
+    setSp({}, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, apps]);
+
+  const stats = useMemo(() => {
+    const pending = apps.filter((a) => isPending(a, cfg.statuses));
+    return {
+      applied: apps.filter((a) => isApplied(a, cfg.statuses)).length,
+      pending: pending.length,
+      overdue: pending.filter((a) => a.plan_date && a.plan_date < today).length,
+      today: pending.filter((a) => a.plan_date === today).length,
+      waiting: apps.filter((a) => isWaiting(a, cfg.statuses)).length,
+      total: apps.length,
+    };
+  }, [apps, cfg.statuses, today]);
+
+  const toggleSel = (id) =>
+    setSel((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+
+  const applyQueue = (applyIds || []).map((id) => apps.find((a) => a.id === id)).filter(Boolean);
+  const batches = useMemo(() => Array.from(new Set(apps.map((a) => a.batch).filter(Boolean))).sort((x, y) => y.localeCompare(x)), [apps]);
+
+  // 简历库点了「被 N 个岗位引用」→ 切到全量视图，并把简历版本作为筛选条件传下去
+  useEffect(() => {
+    if (resumeFocus?.id) changeTab("all");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [resumeFocus]);
+
+  const viewProps = {
+    apps, cfg, today, sel, toggleSel, setSel,
+    patchRow, patchMany, markApplied, openDetail, openForm: openNew,
+    onStatusOpen: (a) => setStatusTargetId(a.id),
   };
 
   return (
     <>
       <PageHeader
         title="求职看板"
-        subtitle={
-          counts.today || counts.overdue
-            ? `今天要投 ${counts.today} 家${counts.overdue ? ` · 还有 ${counts.overdue} 家逾期没投` : ""}`
-            : "追踪每家公司的流程与时间线"
-        }
-        action={
-          <div className="flex items-center gap-2">
-            <div className="flex rounded-lg border border-slate-200 bg-white p-0.5">
-              <button
-                onClick={() => setView("list")}
-                title="列表视图"
-                className={`rounded-md px-2 py-1.5 ${view === "list" ? "bg-terracotta text-white" : "text-slate-400 hover:bg-slate-50"}`}
-              >
-                <List className="h-4 w-4" />
-              </button>
-              <button
-                onClick={() => setView("cards")}
-                title="卡片视图"
-                className={`rounded-md px-2 py-1.5 ${view === "cards" ? "bg-terracotta text-white" : "text-slate-400 hover:bg-slate-50"}`}
-              >
-                <LayoutGrid className="h-4 w-4" />
-              </button>
-              <button
-                onClick={() => setView("calendar")}
-                title="日历视图"
-                className={`rounded-md px-2 py-1.5 ${view === "calendar" ? "bg-terracotta text-white" : "text-slate-400 hover:bg-slate-50"}`}
-              >
-                <CalendarDays className="h-4 w-4" />
-              </button>
-            </div>
-            <Button onClick={openNew}><Plus className="h-4 w-4" /> 添加公司</Button>
-          </div>
-        }
+        subtitle={`在池 ${stats.total} 家 · 已投 ${stats.applied} 家 · 待投 ${stats.pending} 家${stats.overdue ? ` · 逾期 ${stats.overdue} 家` : ""}`}
+        action={<Button onClick={() => openNew()}><Plus className="h-4 w-4" /> 加岗位</Button>}
       />
 
-      {/* 时间维度：只数还没投出去的，点卡片筛选、再点一次回全部 */}
-      <div className="mb-2 grid grid-cols-2 gap-1.5 sm:grid-cols-4">
-        {RANGES.map((r) => {
-          const active = range === r.key && !stageFilter;
-          const n = r.key === "all" ? base.length : (counts[r.key] || 0);
-          const hot = r.key === "today" && n > 0;
-          return (
-            <button
-              key={r.key}
-              onClick={() => {
-                setStageFilter("");
-                setRange(r.key === "all" ? "all" : range === r.key ? "all" : r.key);
-              }}
-              className={`rounded-xl border px-3 py-2 text-left transition-colors ${
-                active
-                  ? "border-terracotta bg-terracotta text-white shadow-sm"
-                  : "border-slate-200 bg-white hover:bg-slate-50"
-              }`}
-            >
-              <span className={`block text-[11px] ${active ? "text-white/80" : "text-slate-400"}`}>{r.label}</span>
-              <span
-                className={`block text-xl font-semibold leading-tight ${
-                  active ? "text-white" : hot ? "text-terracotta-600" : "text-slate-800"
-                }`}
-              >
-                {n}
-              </span>
-            </button>
-          );
-        })}
-      </div>
-
-      {/* 流程漏斗：状态定死 10 档，点一档只看这档 */}
-      <div className="mb-1 flex items-baseline gap-2">
-        <span className="text-[11px] font-medium text-slate-500">流程漏斗</span>
-        <span className="text-[11px] text-slate-300">点一档只看这档，再点取消</span>
-      </div>
-      <div className="mb-1.5 grid grid-cols-5 gap-1.5 lg:grid-cols-10">
-        {JOB_STATUSES.map((name) => {
-          const n = stageCounts[name] || 0;
-          const active = stageFilter === name;
-          return (
-            <button
-              key={name}
-              onClick={() => {
-                const next = active ? "" : name;
-                setStageFilter(next);
-                if (next) setRange("all");
-              }}
-              className={`rounded-lg border px-2 py-1.5 text-left transition-colors ${
-                active
-                  ? "border-terracotta bg-terracotta-50"
-                  : n
-                    ? "border-slate-200 bg-white hover:border-slate-300"
-                    : "border-slate-100 bg-slate-50/60"
-              }`}
-            >
-              <span className="flex items-center gap-1">
-                <span className={`h-1.5 w-1.5 shrink-0 rounded-full bg-current ${TONE_FG[JOB_STATUS_TONE[name]]}`} />
-                <span
-                  className={`truncate text-[11px] ${
-                    active ? "font-medium text-terracotta-700" : n ? "text-slate-500" : "text-slate-300"
-                  }`}
-                >
-                  {name}
-                </span>
-              </span>
-              <span
-                className={`block text-base font-semibold leading-tight ${
-                  active ? "text-terracotta-700" : n ? "text-slate-800" : "text-slate-300"
-                }`}
-              >
-                {n}
-              </span>
-            </button>
-          );
-        })}
-      </div>
-      {/* 漏斗总览：一条按各档人数占比切开的色条 */}
-      <div className="mb-3 flex h-1.5 overflow-hidden rounded-full bg-slate-100">
-        {JOB_STATUSES.map((name) => {
-          const n = stageCounts[name] || 0;
-          if (!n) return null;
-          return (
-            <span
-              key={name}
-              title={`${name} ${n}`}
-              className={`bg-current ${TONE_FG[JOB_STATUS_TONE[name]]}`}
-              style={{ width: `${(n / (base.length || 1)) * 100}%` }}
-            />
-          );
-        })}
-      </div>
-
-      {/* 二级筛选 */}
-      <div className="mb-4 flex flex-wrap items-center gap-2">
-        <div className="relative min-w-[180px] flex-1">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-300" />
-          <Input
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            placeholder="搜公司 / 岗位 / JD 编号 / 地点"
-            className="pl-8"
-          />
-        </div>
-        <select
-          value={fTier}
-          onChange={(e) => setFTier(e.target.value)}
-          className="rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-xs text-slate-600 outline-none focus:border-terracotta"
-        >
-          <option value="">全部档位</option>
-          {TIERS.map((t) => <option key={t} value={t}>{t}</option>)}
-        </select>
-        {batchOptions.length ? (
-          <select
-            value={fBatch}
-            onChange={(e) => setFBatch(e.target.value)}
-            className="rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-xs text-slate-600 outline-none focus:border-terracotta"
-          >
-            <option value="">全部批次</option>
-            {batchOptions.map((b) => <option key={b} value={b}>{b}</option>)}
-          </select>
-        ) : null}
-        {hasFilter ? (
+      <div className="mb-4 flex gap-1.5 overflow-x-auto">
+        {TABS.map((t) => (
           <button
-            onClick={() => { setQ(""); setStageFilter(""); setFTier(""); setFBatch(""); }}
-            className="inline-flex items-center gap-1 rounded-lg px-2 py-2 text-xs text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+            key={t.key}
+            onClick={() => changeTab(t.key)}
+            className={`shrink-0 rounded-xl border px-3.5 py-2 text-left transition-colors ${
+              tab === t.key ? "border-terracotta bg-terracotta text-white shadow-sm" : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+            }`}
           >
-            <X className="h-3.5 w-3.5" /> 清空筛选
+            <span className="block text-sm font-medium">{t.label}</span>
+            <span className={`block text-[11px] ${tab === t.key ? "text-white/70" : "text-slate-400"}`}>{t.hint}</span>
           </button>
-        ) : null}
+        ))}
       </div>
 
       {loading ? (
         <Loading />
-      ) : view === "calendar" ? (
-        <div className="rounded-xl border border-slate-200 bg-white p-3">
-          <div className="mb-2 flex items-center justify-between">
-            <div className="flex items-center gap-1">
-              <button onClick={() => shiftMonth(-1)} className="rounded px-2 py-1 text-slate-400 hover:bg-slate-100">‹</button>
-              <span className="text-sm font-medium text-slate-700">{cursor.replace("-", " 年 ")} 月</span>
-              <button onClick={() => shiftMonth(1)} className="rounded px-2 py-1 text-slate-400 hover:bg-slate-100">›</button>
-            </div>
-            <button onClick={() => setCursor(today.slice(0, 7))} className="rounded px-2 py-1 text-xs text-terracotta-600 hover:bg-terracotta-50">
-              回到本月
-            </button>
-          </div>
-          <div className="grid grid-cols-7 gap-1 text-center text-[11px] text-slate-400">
-            {["一", "二", "三", "四", "五", "六", "日"].map((d) => <div key={d} className="py-1">{d}</div>)}
-          </div>
-          <div className="grid grid-cols-7 gap-1">
-            {calCells.map((date, i) => {
-              if (!date) return <div key={`e${i}`} className="min-h-[64px] rounded-lg bg-slate-50/40" />;
-              const list = byPlanDate[date] || [];
-              const isToday = date === today;
-              // 一个徽章 = 一个状态，颜色就是这一档的 tone，不再画一坨小竖条
-              const tally = {};
-              list.forEach((a) => { const k = stageOf(a); tally[k] = (tally[k] || 0) + 1; });
-              const shownStages = JOB_STATUSES.filter((n) => tally[n]);
-              const allDone = list.length > 0 && !list.some((a) => isPending(a));
-              return (
-                <button
-                  key={date}
-                  onClick={() => (list.length ? setDayDetail(date) : null)}
-                  className={`min-h-[64px] rounded-lg border p-1 text-left transition-colors ${
-                    isToday ? "border-terracotta/50 bg-terracotta-50/40" : "border-slate-100 bg-white"
-                  } ${list.length ? "hover:border-slate-300" : "cursor-default"}`}
-                >
-                  <div className={`mb-0.5 flex items-center gap-0.5 text-[11px] ${isToday ? "font-semibold text-terracotta-600" : "text-slate-400"}`}>
-                    {Number(date.slice(8))}
-                    {allDone ? <span className="text-[10px] text-slate-300">✓</span> : null}
-                  </div>
-                  <div className="flex flex-wrap gap-0.5">
-                    {shownStages.slice(0, 3).map((n) => (
-                      <span
-                        key={n}
-                        title={`${n} ${tally[n]} 个`}
-                        className={`rounded px-1 text-[10px] font-semibold leading-4 ${styleOf(n)}`}
-                      >
-                        {tally[n]}{STAGE_SHORT[n]}
-                      </span>
-                    ))}
-                    {shownStages.length > 3 ? (
-                      <span className="px-0.5 text-[10px] leading-4 text-slate-400">+{shownStages.length - 3}</span>
-                    ) : null}
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-          {counts.unscheduled ? (
-            <button
-              onClick={() => setRange("unscheduled")}
-              className="mt-2 text-xs text-slate-400 hover:text-terracotta-600"
-            >
-              还有 {counts.unscheduled} 家没排投递日期，点这里去排 →
-            </button>
-          ) : null}
-        </div>
-      ) : view === "list" ? (
-        <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left">
-              <thead className="bg-slate-50/80 text-[11px] text-slate-400">
-                <tr>
-                  <th className="w-8 px-2 py-2" />
-                  <th className="px-2 py-2 font-medium">公司 / 岗位</th>
-                  <th className="px-2 py-2 font-medium">城市</th>
-                  <th className="px-2 py-2 font-medium">发布</th>
-                  <th className="px-2 py-2 font-medium">档位</th>
-                  <th className="px-2 py-2 font-medium">计划</th>
-                  <th className="px-2 py-2 font-medium">状态</th>
-                  <th className="px-2 py-2 font-medium">链接</th>
-                  <th className="px-2 py-2" />
-                </tr>
-              </thead>
-              <tbody className="text-xs">
-                {shown.map((a) => {
-                  const pi = publishInfo(a, today);
-                  return (
-                  <tr key={a.id} className="border-t border-slate-100 hover:bg-slate-50/60">
-                    <td className="px-2 py-2 align-middle">
-                      <Checkbox checked={sel.has(a.id)} onChange={() => toggleSel(a.id)} />
-                    </td>
-                    <td className="px-2 py-2">
-                      <button onClick={() => openDetail(a)} className="block max-w-[260px] truncate text-left">
-                        <span className="font-medium text-slate-800">{a.company}</span>
-                        <span className="text-slate-400"> · {a.position || "岗位未填"}</span>
-                      </button>
-                    </td>
-                    <td className="whitespace-nowrap px-2 py-2 text-slate-500">{a.location || "—"}</td>
-                    <td className="whitespace-nowrap px-2 py-2">
-                      {pi ? (
-                        <span
-                          title={pi.stale ? `发布 ${pi.days} 天，可能是常驻岗` : `已发布 ${pi.days} 天`}
-                          className={`text-[11px] ${pi.fresh ? "text-terracotta-600" : pi.stale ? "text-amber-600/80" : "text-slate-500"}`}
-                        >
-                          {String(pi.d).slice(5)}
-                        </span>
-                      ) : (
-                        <span className="text-slate-300">—</span>
-                      )}
-                    </td>
-                    <td className="px-2 py-2">
-                      {a.tier ? (
-                        <span className={`whitespace-nowrap rounded-full px-1.5 py-0.5 text-[11px] ${tierStyle(a.tier)}`}>{a.tier}</span>
-                      ) : (
-                        <span className="text-slate-300">—</span>
-                      )}
-                    </td>
-                    <td className="whitespace-nowrap px-2 py-2">{planCell(a)}</td>
-                    <td className="px-2 py-2">
-                      <button
-                        onClick={() => setStatusTarget(a)}
-                        title="点这里改状态"
-                        className={`inline-flex items-center gap-0.5 whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] ${styleOf(stageOf(a))}`}
-                      >
-                        {stageOf(a)}
-                        <ChevronDown className="h-3 w-3 opacity-60" />
-                      </button>
-                    </td>
-                    <td className="px-2 py-2">
-                      {a.link ? (
-                        <a
-                          href={a.link}
-                          target="_blank"
-                          rel="noreferrer"
-                          title="打开岗位详情页"
-                          className="inline-flex text-terracotta-600 hover:underline"
-                        >
-                          <ExternalLink className="h-3.5 w-3.5" />
-                        </a>
-                      ) : (
-                        <span className="text-amber-600" title="还没有岗位详情页链接">⚠</span>
-                      )}
-                    </td>
-                    <td className="px-2 py-2">
-                      {isPending(a) ? (
-                        <button
-                          onClick={() => markApplied(a)}
-                          className="whitespace-nowrap rounded border border-slate-200 px-1.5 py-0.5 text-[11px] text-slate-500 hover:border-terracotta hover:text-terracotta-600"
-                        >
-                          标记已投
-                        </button>
-                      ) : null}
-                    </td>
-                  </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      ) : shown.length === 0 ? (
-        <EmptyState
-          icon={range === "today" ? CalendarCheck2 : Building2}
-          text={
-            apps.length === 0
-              ? "还没有求职记录，添加第一家吧"
-              : range === "today"
-                ? `今天没有排投递${counts.unscheduled ? `，还有 ${counts.unscheduled} 家没排日期，去「未排期」里挑几家定在今天` : ""}`
-                : "这个筛选下没有记录"
-          }
-        />
+      ) : tab === "today" ? (
+        <TodayView {...viewProps} startApply={(list) => setApplyIds(list.map((a) => a.id))} />
+      ) : tab === "package" ? (
+        <PackageView {...viewProps} policy={policy} startApply={(list) => setApplyIds(list.map((a) => a.id))} />
+      ) : tab === "followup" ? (
+        <FollowUpView {...viewProps} />
       ) : (
-        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-          {shown.map((a) => {
-            const checked = sel.has(a.id);
-            const pi = publishInfo(a, today);
-            return (
-              <div
-                key={a.id}
-                className={`cursor-pointer rounded-xl border bg-white p-4 transition-shadow hover:shadow-soft ${
-                  checked ? "border-terracotta/60 ring-1 ring-terracotta/20" : "border-slate-200"
-                }`}
-                onClick={() => openDetail(a)}
-              >
-                <div className="mb-2 flex items-start gap-2">
-                  <span onClick={(e) => e.stopPropagation()} className="mt-0.5 shrink-0">
-                    <Checkbox checked={checked} onChange={() => toggleSel(a.id)} />
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <h3 className="truncate font-medium text-slate-900">{a.company}</h3>
-                    <p className="truncate text-xs text-slate-400">
-                      {a.position || "岗位未填"}
-                      {a.jd_code ? ` · JD ${a.jd_code}` : ""}
-                    </p>
-                  </div>
-                  <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs ${styleOf(stageOf(a))}`}>
-                    {stageOf(a)}
-                  </span>
-                </div>
-                <p className="mb-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-slate-500">
-                  {planBadge(a)}
-                  {a.tier ? <span className={`rounded-full px-2 py-0.5 ${tierStyle(a.tier)}`}>{a.tier}</span> : null}
-                  {a.batch ? <span className="rounded-full bg-slate-50 px-2 py-0.5 text-slate-400">{a.batch}</span> : null}
-                  {a.location ? <span className="inline-flex items-center gap-0.5"><MapPin className="h-3 w-3" />{a.location}</span> : null}
-                  {pi ? (
-                    <span
-                      title={pi.stale ? `发布 ${pi.days} 天，可能是常驻岗` : `已发布 ${pi.days} 天`}
-                      className={`inline-flex items-center gap-0.5 ${pi.fresh ? "text-terracotta-600" : pi.stale ? "text-amber-600/80" : ""}`}
-                    >
-                      <CalendarDays className="h-3 w-3" />发布 {String(pi.d).slice(5)}
-                    </span>
-                  ) : null}
-                  {a.business ? <span>{a.business}</span> : null}
-                </p>
-                {(a.link) ? (
-                  <p className="mb-1.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[11px] text-slate-400">
-                    <a
-                      href={a.link}
-                      target="_blank"
-                      rel="noreferrer"
-                      onClick={(e) => e.stopPropagation()}
-                      className="inline-flex items-center gap-0.5 text-terracotta-600 hover:underline"
-                    >
-                      <Link2 className="h-3 w-3" /> 投递链接
-                    </a>
-                  </p>
-                ) : null}
-                {a.note ? <p className="mb-2 line-clamp-2 text-xs text-slate-500">{a.note}</p> : null}
-                <div className="flex flex-wrap items-center gap-1" onClick={(e) => e.stopPropagation()}>
-                  {statuses.map((s) => (
-                    <button
-                      key={s}
-                      onClick={() => changeStatus(a, s)}
-                      title={stageOf(a) === s ? "当前状态" : `改为「${s}」`}
-                      className={`rounded px-1.5 py-0.5 text-[11px] transition-colors ${
-                        stageOf(a) === s
-                          ? "font-medium " + styleOf(s)
-                          : "text-slate-400 hover:bg-slate-100"
-                      }`}
-                    >
-                      {s}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            );
-          })}
-        </div>
+        <AllView {...viewProps} resumes={resumes} focusResume={resumeFocus} openImport={() => setImportOpen(true)} />
       )}
 
-      {/* 批量操作浮条 */}
+      {/* 批量浮条：四个工作区共用 */}
       {sel.size ? (
-        <div className="fixed bottom-4 left-1/2 z-40 flex w-[min(92vw,560px)] -translate-x-1/2 flex-wrap items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2.5 shadow-xl">
+        <div className="fixed bottom-4 left-1/2 z-40 flex w-[min(94vw,620px)] -translate-x-1/2 flex-wrap items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2.5 shadow-xl pb-[max(0.625rem,env(safe-area-inset-bottom))]">
           <span className="text-xs font-medium text-slate-700">已选 {sel.size} 家</span>
-          <Button size="sm" onClick={() => bulkApply({ plan_date: today }, `已把 ${sel.size} 家排到今天`)}>排到今天</Button>
+          <Button size="sm" onClick={() => markApplied([...sel])}>标记已投</Button>
+          <Button size="sm" variant="outline" onClick={() => patchMany([...sel], { plan_date: today }, `已排到今天：${sel.size} 家`)}>
+            排到今天
+          </Button>
           <div className="flex items-center gap-1">
-            <Input
-              type="date"
-              value={bulkDate}
-              onChange={(e) => setBulkDate(e.target.value)}
-              className="w-[136px] px-2 py-1.5 text-xs"
-            />
+            <Input type="date" value={bulkDate} onChange={(e) => setBulkDate(e.target.value)} className="w-[132px] px-2 py-1.5 text-xs" />
             <Button
               size="sm"
               variant="outline"
               disabled={!bulkDate}
-              onClick={() => bulkApply({ plan_date: bulkDate }, `计划日期已改为 ${bulkDate}`)}
+              onClick={() => patchMany([...sel], { plan_date: bulkDate }, `计划日期已改成 ${bulkDate}`)}
             >
               排到该日
             </Button>
           </div>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={bulkMarkApplied}
-          >
-            标记已投
+          <Button size="sm" variant="outline" onClick={() => patchMany([...sel], { batch: "" }, `已移出本包：${sel.size} 家`)}>
+            移出本包
           </Button>
-          <button
-            onClick={() => setSel(new Set())}
-            className="ml-auto rounded p-1 text-slate-300 hover:bg-slate-100 hover:text-slate-500"
-            title="取消选择"
+          <select
+            value=""
+            onChange={(e) => { if (e.target.value) patchMany([...sel], { tier: e.target.value }, `档位已改为「${e.target.value}」`); }}
+            className="h-8 rounded-lg border border-slate-200 bg-white px-2 text-xs text-slate-600 outline-none focus:border-terracotta"
           >
+            <option value="">改档位…</option>
+            {TIERS.map((t) => <option key={t} value={t}>{t}</option>)}
+            <option value="">不分档</option>
+          </select>
+          <select
+            value=""
+            onChange={(e) => { if (e.target.value) patchMany([...sel], { city: e.target.value }, `城市已改为「${e.target.value}」`); }}
+            className="h-8 rounded-lg border border-slate-200 bg-white px-2 text-xs text-slate-600 outline-none focus:border-terracotta"
+          >
+            <option value="">改城市…</option>
+            {["北京", "天津", "上海", "其他"].map((c) => <option key={c} value={c}>{c}</option>)}
+          </select>
+          <button onClick={() => setSel(new Set())} className="ml-auto rounded p-1 text-slate-300 hover:bg-slate-100 hover:text-slate-500" title="取消选择">
             <X className="h-4 w-4" />
           </button>
         </div>
       ) : null}
 
-      {/* 改状态：10 档定死，不给自由文本 */}
-      <Modal
-        open={!!statusTarget}
-        onClose={() => setStatusTarget(null)}
-        title={statusTarget ? `${statusTarget.company} · 改状态` : ""}
-      >
+      <JobForm
+        open={formOpen}
+        initial={formInitial}
+        editingId={editingId}
+        cfg={cfg}
+        resumes={resumes}
+        today={today}
+        batches={batches}
+        policy={policy}
+        onClose={() => { setFormOpen(false); setEditingId(null); }}
+        onSave={saveForm}
+        onDelete={(id) => { removeRow(id); setFormOpen(false); }}
+      />
+
+      {applyQueue.length ? (
+        <ApplyMode
+          queue={applyQueue}
+          today={today}
+          resumes={resumes}
+          onApplied={(a) => markApplied([a.id])}
+          onSkip={() => {}}
+          onClose={() => setApplyIds(null)}
+        />
+      ) : null}
+
+      {/* 批量导入：成功后用返回值就地插入，不整页重拉 */}
+      <BulkImport
+        open={importOpen}
+        existing={apps}
+        cfg={cfg}
+        today={today}
+        onClose={() => setImportOpen(false)}
+        onDone={(saved) => {
+          const rows = (saved || []).filter((r) => r && r.id && !r.__single);
+          if (rows.length) setApps((list) => [...rows.reverse(), ...list]);
+        }}
+      />
+
+      {/* 改状态：按语义组分区，选中即存 */}
+      <Modal open={!!statusTarget} onClose={() => setStatusTargetId(null)} title={statusTarget ? `${statusTarget.company} · 改状态` : ""}>
         {statusTarget ? (
           <div className="space-y-3">
             <p className="text-xs text-slate-400">
-              选中即保存。进到「待投递」以外任何一档，会自动补上今天为投递日期。
+              现在：<StatusPill status={statusTarget.status} styleOf={cfg.styleOf} size="sm" />
+              <span className="ml-2">点一下就存，不再自动改投递日期。</span>
             </p>
-            <div className="grid grid-cols-2 gap-1.5">
-              {JOB_STATUSES.map((n) => (
-                <button
-                  key={n}
-                  onClick={() => pickStatus(statusTarget, n)}
-                  className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-2 text-left text-xs transition-colors ${
-                    stageOf(statusTarget) === n
-                      ? "border-terracotta bg-terracotta-50 font-medium text-terracotta-700"
-                      : "border-slate-200 text-slate-600 hover:bg-slate-50"
-                  }`}
-                >
-                  <span className={`h-2 w-2 shrink-0 rounded-full bg-current ${TONE_FG[JOB_STATUS_TONE[n]]}`} />
-                  {n}
-                </button>
-              ))}
-            </div>
-          </div>
-        ) : null}
-      </Modal>
-
-      {/* 日历点开某一天：按状态分组列当天的人 */}
-      <Modal open={!!dayDetail} onClose={() => setDayDetail(null)} title={dayDetail ? `${dayDetail} 这一天的投递` : ""}>
-        {dayDetail ? (
-          <div className="space-y-3">
-            {JOB_STATUSES.map((n) => {
-              const rows = (byPlanDate[dayDetail] || []).filter((a) => stageOf(a) === n);
-              if (!rows.length) return null;
+            {STATUS_GROUPS.map((g) => {
+              const list = cfg.config.filter((c) => c.group === g.key);
+              if (!list.length) return null;
               return (
-                <div key={n}>
-                  <p className="mb-1 flex items-center gap-1.5 text-xs text-slate-400">
-                    <span className={`h-2 w-2 rounded-full bg-current ${TONE_FG[JOB_STATUS_TONE[n]]}`} />
-                    {n}（{rows.length}）
-                  </p>
-                  <div className="space-y-0.5">
-                    {rows.map((a) => (
+                <div key={g.key}>
+                  <p className="mb-1 text-[11px] text-slate-300">{g.label}</p>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    {list.map((c) => (
                       <button
-                        key={a.id}
-                        onClick={() => { setDayDetail(null); openDetail(a); }}
-                        className="flex w-full items-baseline justify-between gap-3 rounded-lg px-2 py-1.5 text-left text-sm hover:bg-slate-50"
+                        key={c.name}
+                        onClick={() => pickStatus(statusTarget, c.name)}
+                        className={`rounded-lg border px-2.5 py-2 text-left text-xs ${
+                          statusTarget.status === c.name
+                            ? "border-terracotta bg-terracotta-50 font-medium text-terracotta-700"
+                            : "border-slate-200 text-slate-600 hover:bg-slate-50"
+                        }`}
                       >
-                        <span className="min-w-0 truncate">
-                          <span className="font-medium text-slate-800">{a.company}</span>
-                          <span className="text-xs text-slate-400"> · {a.position || "岗位未填"}</span>
-                        </span>
-                        <span className="shrink-0 text-[11px] text-slate-400">{a.location || ""}</span>
+                        {c.name}
                       </button>
                     ))}
                   </div>
@@ -962,196 +505,127 @@ export default function Board() {
         ) : null}
       </Modal>
 
-      <Modal open={formOpen} onClose={() => setFormOpen(false)} title={editingId ? "编辑记录" : "添加公司"}>
-        <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label>公司</Label>
-              <Input value={form.company} onChange={(e) => setForm({ ...form, company: e.target.value })} placeholder="公司名" />
-            </div>
-            <div>
-              <Label>岗位</Label>
-              <Input value={form.position} onChange={(e) => setForm({ ...form, position: e.target.value })} placeholder="如：AI 产品经理" />
-            </div>
-            <div>
-              <Label>JD 编号（可选）</Label>
-              <Input value={form.jd_code} onChange={(e) => setForm({ ...form, jd_code: e.target.value })} placeholder="如 20261028-01" />
-            </div>
-            <div>
-              <Label>工作地点（可选）</Label>
-              <Input value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} placeholder="如：北京市" />
-            </div>
-            <div>
-              <Label>业务方向（可选）</Label>
-              <Input value={form.business} onChange={(e) => setForm({ ...form, business: e.target.value })} placeholder="如：B 端 / 搜索 / 大数据" />
-            </div>
-            <div>
-              <Label>岗位发布时间（可选）</Label>
-              <Input type="date" value={form.publish_date || ""} onChange={(e) => setForm({ ...form, publish_date: e.target.value })} />
-            </div>
-            <div>
-              <Label>计划投递日期（可选）</Label>
-              <Input type="date" value={form.plan_date} onChange={(e) => setForm({ ...form, plan_date: e.target.value })} />
-            </div>
-            <div>
-              <Label>投递日期（投完再填）</Label>
-              <Input type="date" value={form.applied_date} onChange={(e) => setForm({ ...form, applied_date: e.target.value })} />
-            </div>
-            <div>
-              <Label>批次（可选）</Label>
-              <Input value={form.batch} onChange={(e) => setForm({ ...form, batch: e.target.value })} placeholder="如 Day3" />
-            </div>
-          </div>
-          <div>
-            <Label>档位（可选）</Label>
-            <div className="flex flex-wrap gap-1.5">
-              <button
-                onClick={() => setForm({ ...form, tier: "" })}
-                className={`rounded-full px-3 py-1 text-xs transition-colors ${
-                  form.tier === "" ? "font-medium bg-slate-200 text-slate-700" : "bg-slate-100 text-slate-500 hover:bg-slate-200"
-                }`}
-              >
-                未分档
-              </button>
-              {TIERS.map((t) => (
-                <button
-                  key={t}
-                  onClick={() => setForm({ ...form, tier: t })}
-                  className={`rounded-full px-3 py-1 text-xs transition-colors ${
-                    form.tier === t
-                      ? "font-medium ring-1 ring-terracotta " + tierStyle(t)
-                      : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-                  }`}
-                >
-                  {t}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div>
-            <Label>投递链接（可选）</Label>
-            <Input value={form.link} onChange={(e) => setForm({ ...form, link: e.target.value })} placeholder="https://…" />
-          </div>
-          {resumes.length ? (
-            <div>
-              <Label>使用简历版本（可选）</Label>
-              <select
-                value={form.resume_id}
-                onChange={(e) => setForm({ ...form, resume_id: e.target.value })}
-                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 outline-none focus:border-terracotta"
-              >
-                <option value="">不关联</option>
-                {resumes.map((r) => (
-                  <option key={r.id} value={r.id}>
-                    {r.name}{r.in_use ? "（在用）" : ""}
-                  </option>
-                ))}
-              </select>
-            </div>
-          ) : null}
-          <div>
-            <Label>当前状态</Label>
-            <div className="flex flex-wrap gap-1.5">
-              {statuses.map((s) => (
-                <button
-                  key={s}
-                  onClick={() => setForm({ ...form, status: s })}
-                  className={`rounded-full px-3 py-1 text-xs transition-colors ${
-                    form.status === s
-                      ? "font-medium ring-1 ring-terracotta " + styleOf(s)
-                      : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-                  }`}
-                >
-                  {s}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div>
-            <Label>备注（可选）</Label>
-            <Textarea value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} placeholder="渠道、内推人、薪资范围…" rows={3} />
-          </div>
-          <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => setFormOpen(false)}>取消</Button>
-            <Button onClick={save} loading={saving}>保存</Button>
-          </div>
-        </div>
-      </Modal>
-
-      <Modal open={!!detail} onClose={() => setDetail(null)} title={detail ? `${detail.company} · ${normStatus(detail.status)}` : ""}>
+      {/* 详情：时间线 + 下一步 */}
+      <Modal open={!!detail} onClose={() => setDetailId(null)} title={detail ? `${detail.company} · ${detail.position || "岗位未填"}` : ""} wide>
         {detail ? (
           <>
-            <div className="mb-4 flex items-center gap-1">
-              <Button variant="ghost" size="sm" onClick={() => openEdit(detail)}><Pencil className="h-3.5 w-3.5" /> 编辑</Button>
-              {!detail.applied_date ? (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => markApplied(detail)}
-                >
+            <div className="mb-4 flex flex-wrap items-center gap-1">
+              <StatusPill status={detail.status} styleOf={cfg.styleOf} size="sm" onOpen={() => setStatusTargetId(detail.id)} />
+              <Button variant="ghost" size="sm" onClick={() => { setDetailId(null); openEdit(detail); }}>
+                <Pencil className="h-3.5 w-3.5" /> 编辑
+              </Button>
+              {isPending(detail, cfg.statuses) ? (
+                <Button variant="ghost" size="sm" onClick={() => markApplied([detail.id])}>
                   <CalendarCheck2 className="h-3.5 w-3.5" /> 标记已投
                 </Button>
               ) : null}
-              <Button variant="danger" size="sm" onClick={() => remove(detail)}><Trash2 className="h-3.5 w-3.5" /> 删除</Button>
+              <Button variant="danger" size="sm" onClick={() => removeRow(detail.id)} className="ml-auto">
+                <Trash2 className="h-3.5 w-3.5" /> 删除
+              </Button>
             </div>
-            {(detail.jd_code || detail.location || detail.business || detail.publish_date || detail.plan_date || detail.applied_date || detail.tier || detail.batch || detail.link || resumeName(detail)) ? (
-              <div className="mb-4 grid grid-cols-2 gap-x-4 gap-y-1.5 rounded-lg bg-slate-50 p-3 text-xs">
-                {detail.plan_date ? <p><span className="text-slate-400">计划投递：</span><span className="text-slate-700">{detail.plan_date}</span></p> : null}
-                {detail.applied_date ? <p><span className="text-slate-400">已投日期：</span><span className="text-slate-700">{detail.applied_date}</span></p> : null}
-                {detail.tier ? <p><span className="text-slate-400">档位：</span><span className="text-slate-700">{detail.tier}</span></p> : null}
-                {detail.batch ? <p><span className="text-slate-400">批次：</span><span className="text-slate-700">{detail.batch}</span></p> : null}
-                {detail.jd_code ? <p className="min-w-0 break-all"><span className="text-slate-400">JD 编号：</span><span className="text-slate-700">{detail.jd_code}</span></p> : null}
-                {detail.publish_date ? (
-                  <p>
-                    <span className="text-slate-400">岗位发布：</span>
-                    <span className="text-slate-700">{detail.publish_date}（已挂 {dayDiff(detail.publish_date, today)} 天）</span>
-                  </p>
-                ) : null}
-                {detail.location ? <p><span className="text-slate-400">地点：</span><span className="text-slate-700">{detail.location}</span></p> : null}
-                {detail.business ? <p><span className="text-slate-400">业务：</span><span className="text-slate-700">{detail.business}</span></p> : null}
-                {resumeName(detail) ? <p><span className="text-slate-400">简历版本：</span><span className="text-slate-700">{resumeName(detail)}</span></p> : null}
-                {detail.link ? (
-                  <p className="col-span-2 truncate">
-                    <span className="text-slate-400">链接：</span>
-                    <a href={detail.link} target="_blank" rel="noreferrer" className="text-terracotta-600 hover:underline">{detail.link}</a>
-                  </p>
-                ) : null}
-              </div>
-            ) : null}
+
+            <div className="mb-4 grid grid-cols-2 gap-x-4 gap-y-1.5 rounded-lg bg-slate-50 p-3 text-xs">
+              {detail.plan_date ? <p><span className="text-slate-400">计划投递：</span>{detail.plan_date}</p> : null}
+              {detail.applied_date ? (
+                <p>
+                  <span className="text-slate-400">已投：</span>
+                  {detail.applied_date}
+                  <span className="ml-1 text-slate-400">（{dayDiff(detail.applied_date, today)} 天）</span>
+                </p>
+              ) : null}
+              {detail.status_changed_at ? (
+                <p><span className="text-slate-400">状态停在：</span>{dayDiff(String(detail.status_changed_at).slice(0, 10), today)} 天前</p>
+              ) : null}
+              {detail.next_action ? (
+                <p className="col-span-2">
+                  <span className="text-slate-400">下一步：</span>{detail.next_action}
+                  {detail.next_action_date ? <span className="ml-1 text-slate-400">（{detail.next_action_date}）</span> : null}
+                </p>
+              ) : null}
+              {detail.city || detail.location ? <p><span className="text-slate-400">城市：</span>{detail.city || detail.location}</p> : null}
+              {detail.company_type ? <p><span className="text-slate-400">公司类型：</span>{detail.company_type}</p> : null}
+              {detail.source ? <p><span className="text-slate-400">来源：</span>{detail.source}</p> : null}
+              {detail.tier ? <p><span className="text-slate-400">档位：</span>{detail.tier}</p> : null}
+              {detail.batch ? <p><span className="text-slate-400">批次：</span>{detail.batch}</p> : null}
+              {detail.publish_date ? (
+                <p><span className="text-slate-400">发布：</span>{detail.publish_date}（{dayDiff(detail.publish_date, today)} 天）</p>
+              ) : null}
+              {resumes.find((r) => r.id === Number(detail.resume_id)) ? (
+                <p><span className="text-slate-400">简历：</span>{resumes.find((r) => r.id === Number(detail.resume_id)).name}</p>
+              ) : null}
+              {detail.jd_code ? <p><span className="text-slate-400">JD：</span>{detail.jd_code}</p> : null}
+              {detail.link ? (
+                <p className="col-span-2 truncate">
+                  <span className="text-slate-400">链接：</span>
+                  <a href={detail.link} target="_blank" rel="noreferrer" className="text-terracotta-600 hover:underline">{detail.link}</a>
+                </p>
+              ) : (
+                <p className="col-span-2 text-amber-600">没有存投递链接，下次投之前记得补上。</p>
+              )}
+            </div>
             {detail.note ? <p className="mb-4 rounded-lg bg-slate-50 p-3 text-sm text-slate-600">{detail.note}</p> : null}
 
-            <h3 className="mb-3 flex items-center gap-1.5 text-sm font-semibold text-slate-900">
-              <History className="h-4 w-4 text-slate-400" /> 进展时间线
+            <h3 className="mb-2 flex items-center gap-1.5 text-sm font-semibold text-slate-900">
+              <History className="h-4 w-4 text-slate-400" /> 进展
             </h3>
-            {events.length === 0 ? (
-              <p className="pb-2 text-xs text-slate-400">还没有进展记录</p>
-            ) : (
-              <div className="mb-4">
+            {events.length ? (
+              <div className="mb-3">
                 {events.map((item, i) => (
-                  <div key={item.id} className="relative flex gap-3 pb-4">
+                  <div key={item.id} className={`relative flex gap-3 pb-3 ${evEditId === item.id ? "rounded-lg bg-terracotta-50/50 px-1" : ""}`}>
                     {i < events.length - 1 ? <div className="absolute left-[5px] top-4 h-full w-px bg-slate-200" /> : null}
                     <div className="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full bg-terracotta" />
-                    <div className="min-w-0">
-                      <p className="text-sm text-slate-800">{item.title}</p>
-                      <p className="text-[11px] text-slate-400">
-                        {item.event_date || ""}
-                        {item.event_date && item.note ? " · " : ""}
-                        {item.note}
-                      </p>
+                    <div className="min-w-0 flex-1">
+                      <AutoLink text={item.title} className="text-sm text-slate-800" />
+                      <div className="flex items-start gap-2">
+                        <div className="min-w-0 flex-1">
+                          <p className="text-[11px] text-slate-400">{item.event_date || "日期未填"}</p>
+                          {item.note ? <AutoLink text={item.note} className="text-[11px] text-slate-400" /> : null}
+                        </div>
+                        <div className="flex shrink-0 gap-0.5">
+                          <button onClick={() => editEvent(item)} title="编辑" className="rounded p-1 text-slate-300 hover:bg-slate-100 hover:text-slate-500">
+                            <Pencil className="h-3 w-3" />
+                          </button>
+                          <button onClick={() => removeEvent(item)} title="删除" className="rounded p-1 text-slate-300 hover:bg-red-50 hover:text-red-400">
+                            <Trash2 className="h-3 w-3" />
+                          </button>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 ))}
               </div>
+            ) : (
+              <p className="mb-3 text-xs text-slate-400">还没有进展记录</p>
             )}
-            <div className="space-y-2 rounded-lg border border-slate-100 bg-white/60 p-3">
-              <Input value={ev.title} onChange={(e) => setEv({ ...ev, title: e.target.value })} placeholder="新进展，如：一面通过" />
+            <div className="space-y-2 rounded-lg border border-slate-100 p-3">
+              {evEditId ? <p className="text-[11px] text-terracotta-600">正在改已有的一条，保存后按日期重新排序</p> : null}
+              <Input value={ev.title} onChange={(e) => setEv({ ...ev, title: e.target.value })} placeholder="新进展，如：一面通过（贴链接会自动变成可点）" />
               <div className="flex gap-2">
                 <Input type="date" className="w-40" value={ev.event_date} onChange={(e) => setEv({ ...ev, event_date: e.target.value })} />
                 <Input value={ev.note} onChange={(e) => setEv({ ...ev, note: e.target.value })} placeholder="补充说明（可选）" />
               </div>
-              <Button size="sm" onClick={addEvent} className="w-full">
-                <Plus className="h-3.5 w-3.5" /> 记录这条进展
-              </Button>
+              {!evEditId ? (
+                <select
+                  value={evStatus}
+                  onChange={(e) => setEvStatus(e.target.value)}
+                  className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-600 outline-none focus:border-terracotta"
+                >
+                  <option value="">不同步看板状态</option>
+                  {cfg.statuses.filter((s) => s !== detail.status).map((s) => (
+                    <option key={s} value={s}>同时把状态推进到：{s}</option>
+                  ))}
+                </select>
+              ) : null}
+              <div className="flex gap-2">
+                {evEditId ? (
+                  <Button size="sm" variant="outline" onClick={() => { setEvEditId(null); setEv({ title: "", event_date: today, note: "" }); }} className="flex-1">
+                    取消修改
+                  </Button>
+                ) : null}
+                <Button size="sm" onClick={addEvent} loading={evSaving} className="flex-1">
+                  <Plus className="h-3.5 w-3.5" /> {evEditId ? "保存修改" : "记一条"}
+                </Button>
+              </div>
             </div>
           </>
         ) : null}

@@ -1,7 +1,8 @@
 // 全局配色约定:求职状态 + 通用标签色
 // 颜色语义:teal=待出手 → blue=已投 → purple=笔试 → 暖色系=面试进阶 → green=Offer → 灰=结束
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { listRows } from "./api";
+import { DEFAULT_STATUS_GROUP, DEFAULT_STATUS_SHORT, groupOf as groupOfPure, shortOf as shortOfPure } from "./jobs";
 
 // 求职状态：定死成 10 档，一条线走到底（待投递 → … → Offer ／ 已取消）。
 // 不再有「投递中」：没投出去就是待投递，投出去第一步就是简历筛选中。
@@ -56,17 +57,21 @@ export function tagChip(tag) {
 }
 
 // ===== 配置读取 hooks(settings 集合:job_statuses / tag_colors) =====
+// 进程内缓存：一次会话只拉一次 settings，看板/首页/自定义页反复读同一份，
+// 改配置后刷新页面（或下次进站）才生效——与「保存配置后重新进看板生效」的提示一致。
+let SETTINGS_CACHE = null;
 const findSetting = async (key) => {
   try {
-    const rows = await listRows("settings");
-    const hit = rows.find((r) => r.key === key);
+    if (!SETTINGS_CACHE) SETTINGS_CACHE = await listRows("settings");
+    const hit = SETTINGS_CACHE.find((r) => r.key === key);
     return hit?.value ? JSON.parse(hit.value) : null;
   } catch {
     return null;
   }
 };
 
-// 求职状态:自定义 [{name, tone}] 或默认;styleOf 兼容历史遗留状态值(回落哈希色)
+// 求职状态:自定义 [{name, tone, group?, short?}] 或默认。
+// group 决定它落在「未投 / 已投等消息 / 流程中 / 结束」哪一段；不写就按默认表推断。
 export function useJobStatuses() {
   const [custom, setCustom] = useState(null);
   useEffect(() => {
@@ -76,16 +81,35 @@ export function useJobStatuses() {
     });
     return () => { on = false; };
   }, []);
-  const statuses = custom ? custom.map((s) => s.name) : JOB_STATUSES;
+  const config = useMemo(() => {
+    if (!custom) {
+      return JOB_STATUSES.map((n) => ({
+        name: n,
+        tone: JOB_STATUS_TONE[n],
+        group: DEFAULT_STATUS_GROUP[n] || "",
+        short: DEFAULT_STATUS_SHORT[n] || n.slice(0, 2),
+      }));
+    }
+    return custom.map((s) => ({
+      name: s.name,
+      tone: s.tone,
+      group: s.group || DEFAULT_STATUS_GROUP[s.name] || "",
+      short: s.short || DEFAULT_STATUS_SHORT[s.name] || String(s.name).slice(0, 2),
+    }));
+  }, [custom]);
+  const statuses = config.map((c) => c.name);
   const styleOf = (name) => {
-    const hit = custom?.find((s) => s.name === name);
+    const hit = config.find((s) => s.name === name);
     if (hit) return toneChip(hit.tone);
     // 历史数据里的旧状态:名字哈希取个稳定色,不至于一片灰
     let h = 0;
     for (const ch of String(name || "")) h = (h * 31 + ch.codePointAt(0)) >>> 0;
     return toneChip(TAG_PALETTE[h % TAG_PALETTE.length]);
   };
-  return { statuses, styleOf };
+  const groupOf = (name) => groupOfPure(name, config);
+  const shortOf = (name) => shortOfPure(name, config);
+  const byGroup = (g) => config.filter((c) => c.group === g);
+  return { statuses, styleOf, config, groupOf, shortOf, byGroup };
 }
 
 // 标签配色:挂载时拉取并注册,全站 tagChip 生效

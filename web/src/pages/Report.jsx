@@ -4,6 +4,7 @@ import { listRows, insertRow, api } from "../api";
 import { useLiveReload } from "../live";
 import { Button, Textarea, Loading, toast } from "../components/ui";
 import MarkdownLite from "../components/MarkdownLite";
+import { groupOf, isClosed, dayDiff } from "../jobs";
 import { CalendarRange, Copy, BookOpen, RefreshCw, Sparkles, Eye, PenLine } from "lucide-react";
 
 function ymd(d) {
@@ -89,9 +90,26 @@ export default function Report() {
     const expByCat = Object.entries(
       exps.reduce((m, r) => ({ ...m, [r.category]: (m[r.category] || 0) + Number(r.amount || 0) }), {})
     ).sort((a, b) => b[1] - a[1]);
-    const events = data.job_events.filter((r) => inRange(r.event_date));
+    const events = data.job_events.filter((r) => inRange(r.event_date || r.created_at)); // 没填事件日期的回落到创建时间，别直接丢
     const ivs = data.interviews.filter((r) => inRange(r.interview_date));
     const appsTouched = data.job_apps.filter((r) => inRange(r.updated_at));
+
+    // 本期投递硬数据：按 applied_date 归期，公司类型分桶；没填类型的算「未分」
+    const appliedInRange = data.job_apps.filter((r) => inRange(r.applied_date));
+    const byType = { 大厂: 0, 中小厂: 0 };
+    appliedInRange.forEach((r) => {
+      if (r.company_type === "大厂" || r.company_type === "中小厂") byType[r.company_type] += 1;
+    });
+    const appliedIds = new Set(appliedInRange.map((r) => r.id));
+    // 有回音 = 已投之后状态往前走过（进入流程或已结束），停在「已投/筛选中」不算
+    // 周报不拉状态配置，这里用默认状态表推断，自定义状态的记录不会误算成有回音
+    const replied = appliedInRange.filter((r) => ["progress", "closed"].includes(groupOf(r.status, [])));
+    const todayStr = ymd(new Date());
+    const waitingReply = data.job_apps.filter((r) => {
+      if (!r.applied_date || isClosed(r, [])) return false;
+      const changed = String(r.status_changed_at || "").slice(0, 10);
+      return changed && dayDiff(changed, todayStr) !== null && dayDiff(changed, todayStr) >= 7;
+    });
 
     const lines = [];
     lines.push(`# ${label}复盘（${start} ~ ${end}）`);
@@ -108,7 +126,19 @@ export default function Report() {
     lines.push("");
 
     lines.push("## 求职进展");
-    if (events.length === 0 && ivs.length === 0) {
+    // 硬数据三行：投了多少、回复率、待跟进
+    if (appliedInRange.length) {
+      const parts = [`本期投递 ${appliedInRange.length} 家`];
+      if (byType.大厂 || byType.中小厂) parts.push(`（大厂 ${byType.大厂} / 中小厂 ${byType.中小厂}）`);
+      lines.push(`- ${parts.join("")}`);
+      lines.push(`- 回复率：${appliedInRange.length ? Math.round((replied.length / appliedInRange.length) * 100) : 0}%（${replied.length}/${appliedInRange.length} 有下文）`);
+    } else {
+      lines.push("- 本期没有新投递");
+    }
+    if (waitingReply.length) {
+      lines.push(`- 待跟进 ${waitingReply.length} 家：${waitingReply.slice(0, 5).map((a) => a.company).join("、")}${waitingReply.length > 5 ? " 等" : ""}`);
+    }
+    if (events.length === 0 && ivs.length === 0 && !appliedInRange.length) {
       lines.push("- 本期没有新的求职动态");
     } else {
       events.forEach((e) => {
@@ -121,7 +151,7 @@ export default function Report() {
         lines.push(`- 面试：${company} ${i.round} · ${i.result} · 自评 ${i.rating}/5 · 记录 ${n} 道题`);
       });
       if (!events.length && appsTouched.length) {
-        lines.push(`- 在推进：${appsTouched.map((a) => `${a.company}（${a.status}）`).join("、")}`);
+        lines.push(`- 在推进：${appsTouched.filter((a) => !appliedIds.has(a.id)).map((a) => `${a.company}（${a.status}）`).join("、")}`);
       }
     }
     lines.push("");

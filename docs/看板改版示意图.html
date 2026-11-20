@@ -1,0 +1,970 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>求职看板 · 改版示意图</title>
+<style>
+  :root {
+    --paper: #f7f4ef;
+    --card: #fffdfb;
+    --line: #e7e1d9;
+    --line-soft: #f0ebe4;
+    --ink: #3a3532;
+    --ink-2: #6d645c;
+    --ink-3: #9c938a;
+    --terra: #b96a52;
+    --terra-soft: #f3e5df;
+    --terra-line: #dcc0b4;
+    --teal: #7d9a92;
+    --teal-soft: #eaf0ee;
+    --blue: #7f93a8;
+    --blue-soft: #eaeff4;
+    --amber: #c08f5e;
+    --amber-soft: #f6ecdf;
+    --rose: #b98287;
+    --rose-soft: #f6e8e9;
+    --slate: #a8a29c;
+    --slate-soft: #f0edea;
+    --green: #7f9d7a;
+    --green-soft: #eaf1e8;
+    --shadow: 0 1px 2px rgba(58,53,50,.04), 0 6px 18px rgba(58,53,50,.05);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    font-size: 15px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  .song { font-family: "Songti SC", "STSong", "SimSun", serif; }
+  .wrap { max-width: 1000px; margin: 0 auto; padding: 40px 22px 80px; }
+
+  .doc-head { margin-bottom: 26px; }
+  .doc-head h1 {
+    font-family: "Songti SC", "STSong", serif;
+    font-size: 30px; font-weight: 600; letter-spacing: .02em;
+    margin: 0 0 8px;
+  }
+  .doc-head p { margin: 0; color: var(--ink-2); font-size: 13.5px; max-width: 760px; }
+  .doc-head .hint {
+    display: inline-block; margin-top: 10px; padding: 5px 11px;
+    border: 1px dashed var(--terra-line); border-radius: 4px;
+    background: var(--terra-soft); color: #8d4e3b; font-size: 12px;
+  }
+
+  .tabs { display: flex; flex-wrap: wrap; gap: 8px; margin: 26px 0 20px; align-items: center; }
+  .tab {
+    border: 1px solid var(--line); background: var(--card); color: var(--ink-2);
+    padding: 8px 16px; border-radius: 999px; font-size: 13.5px; cursor: pointer;
+    transition: all .16s; font-family: inherit;
+  }
+  .tab:hover { border-color: var(--terra-line); color: var(--ink); }
+  .tab.on { background: var(--terra); border-color: var(--terra); color: #fff; box-shadow: 0 2px 8px rgba(185,106,82,.22); }
+  .tabs .tabs-label { font-size: 12px; color: var(--ink-3); margin-right: 2px; }
+
+  .screen { display: none; }
+  .screen.on { display: block; animation: fade .22s ease; }
+  @keyframes fade { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+  .section { margin-bottom: 20px; }
+  .sec-head { display: flex; align-items: baseline; gap: 10px; margin-bottom: 9px; }
+  .sec-head h3 { margin: 0; font-size: 14.5px; font-weight: 600; }
+  .sec-head .count {
+    font-size: 12px; color: var(--terra); background: var(--terra-soft);
+    padding: 1px 8px; border-radius: 999px; font-variant-numeric: tabular-nums;
+  }
+  .sec-head .sub { font-size: 12px; color: var(--ink-3); }
+  .sec-head .right { margin-left: auto; }
+
+  .panel { background: var(--card); border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--shadow); }
+  .panel.pad { padding: 16px 18px; }
+
+  .btn {
+    font-family: inherit; font-size: 13px; border-radius: 8px; padding: 7px 13px;
+    border: 1px solid var(--line); background: #fff; color: var(--ink-2); cursor: pointer;
+  }
+  .btn:hover { border-color: var(--terra-line); color: var(--terra); }
+  .btn.primary { background: var(--terra); border-color: var(--terra); color: #fff; }
+  .btn.primary:hover { background: #a95e47; color: #fff; }
+  .btn.mini { font-size: 11.5px; padding: 4px 9px; border-radius: 6px; }
+  .btn.ghost { border-color: transparent; background: transparent; }
+
+  .chip {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 11.5px; padding: 2px 9px; border-radius: 999px;
+    background: var(--slate-soft); color: var(--ink-2); white-space: nowrap;
+  }
+  .chip .dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+  .chip.todo { background: var(--teal-soft); color: #4f6f66; }
+  .chip.applied { background: var(--blue-soft); color: #526a80; }
+  .chip.progress { background: var(--amber-soft); color: #8a6236; }
+  .chip.closed { background: var(--slate-soft); color: #7c756e; }
+  .chip.big { background: var(--rose-soft); color: #8e5559; }
+  .chip.small-co { background: var(--teal-soft); color: #4f6f66; }
+  .chip.fresh { background: var(--terra-soft); color: #8d4e3b; }
+  .chip.tier-chong { background: var(--rose-soft); color: #8e5559; }
+  .chip.tier-zhu { background: var(--amber-soft); color: #8a6236; }
+  .chip.tier-bao { background: var(--blue-soft); color: #526a80; }
+
+  .row-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 11px 16px; border-bottom: 1px solid var(--line-soft);
+  }
+  .row-item:last-child { border-bottom: none; }
+  .row-item .cb {
+    width: 15px; height: 15px; border: 1.5px solid #d5cec6; border-radius: 3.5px; flex: none;
+    display: inline-block;
+  }
+  .row-item .cb.checked { background: var(--terra); border-color: var(--terra); position: relative; }
+  .row-item .cb.checked::after {
+    content: "✓"; position: absolute; inset: 0; color: #fff; font-size: 10px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .row-main { min-width: 0; flex: 1; }
+  .row-main .co { font-weight: 600; font-size: 14px; }
+  .row-main .pos { color: var(--ink-2); font-size: 13px; }
+  .row-meta { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; justify-content: flex-end; }
+  .row-item .acts { display: flex; gap: 6px; flex: none; align-items: center; }
+  .row-item.done .co, .row-item.done .pos { color: var(--ink-3); text-decoration: line-through; text-decoration-color: #d9d2ca; }
+  .row-item.done { background: #fbf9f6; }
+
+  a.link { color: var(--terra); text-decoration: none; border-bottom: 1px solid var(--terra-line); font-size: 12.5px; }
+  a.link:hover { border-bottom-color: var(--terra); }
+
+  .empty-note {
+    padding: 14px 16px; color: var(--ink-3); font-size: 12.5px;
+    background: #fbf9f6; border-top: 1px dashed var(--line);
+  }
+
+  .page-head { display: flex; align-items: flex-start; gap: 14px; margin-bottom: 18px; }
+  .page-head h2 { font-family: "Songti SC", serif; font-size: 23px; font-weight: 600; margin: 0; }
+  .page-head .today-sub { font-size: 13px; color: var(--ink-2); margin-top: 2px; }
+  .page-head .today-sub b { color: var(--terra); font-weight: 600; }
+  .page-head .right { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+
+  .pkg-mini {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 16px; margin-bottom: 20px;
+    background: var(--card); border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--shadow);
+  }
+  .pkg-mini .label { font-size: 12px; color: var(--ink-3); }
+  .pkg-mini .name { font-weight: 600; font-size: 13.5px; }
+  .bar { flex: 1; height: 6px; background: #efeae3; border-radius: 999px; overflow: hidden; min-width: 60px; }
+  .bar > i { display: block; height: 100%; background: var(--terra); border-radius: 999px; }
+  .pkg-mini .num { font-size: 13px; font-variant-numeric: tabular-nums; color: var(--ink-2); white-space: nowrap; }
+  .pkg-mini .num b { color: var(--ink); font-size: 15px; }
+
+  .pack {
+    background: var(--card); border: 1px solid var(--line); border-radius: 14px;
+    box-shadow: var(--shadow); margin-bottom: 18px; overflow: hidden;
+  }
+  .pack-head { padding: 15px 18px 13px; border-bottom: 1px solid var(--line-soft); }
+  .pack-head .l1 { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .pack-head .l1 h3 { margin: 0; font-size: 15px; font-weight: 600; }
+  .pack-head .l1 .spacer { margin-left: auto; }
+  .check-line {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px;
+    margin-top: 10px; padding: 9px 12px; border-radius: 8px;
+    background: #fbf9f6; border: 1px dashed var(--line);
+    font-size: 12px; color: var(--ink-2);
+  }
+  .check-line .ok { color: #5f7d5a; }
+  .check-line .warn { color: #a5523f; font-weight: 600; }
+  .check-line .k { color: var(--ink-3); }
+
+  .pack-grid { display: grid; grid-template-columns: repeat(2, 1fr); }
+  .pack-item {
+    padding: 11px 16px; border-bottom: 1px solid var(--line-soft);
+    display: flex; align-items: center; gap: 9px;
+  }
+  .pack-item:nth-child(odd) { border-right: 1px solid var(--line-soft); }
+  .pack-item .co { font-size: 13.5px; font-weight: 600; }
+  .pack-item .pos { font-size: 12px; color: var(--ink-2); }
+  .pack-item .meta { margin-left: auto; display: flex; align-items: center; gap: 6px; flex: none; }
+  .pack-item .st { width: 7px; height: 7px; border-radius: 50%; flex: none; }
+  .pack-item.done { background: #fbf9f6; }
+  .pack-item.done .co { color: var(--ink-3); }
+  .pack-foot { padding: 12px 18px; display: flex; gap: 8px; align-items: center; background: #fcfaf7; flex-wrap: wrap; }
+  .pack-foot .note { margin-left: auto; font-size: 11.5px; color: var(--ink-3); }
+
+  .pack.dim { opacity: .85; }
+  .pack.dim .pack-head { background: #fbf9f6; }
+
+  .follow-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .follow-card { padding: 0; overflow: hidden; }
+  .follow-card .head {
+    display: flex; align-items: center; gap: 8px;
+    padding: 12px 15px; border-bottom: 1px solid var(--line-soft);
+  }
+  .follow-card .head h4 { margin: 0; font-size: 13.5px; font-weight: 600; }
+  .follow-card .head .n { font-size: 11.5px; color: var(--ink-3); }
+  .follow-card .head .right { margin-left: auto; }
+  .follow-card .body { padding: 4px 0; }
+  .frow { display: flex; align-items: center; gap: 9px; padding: 9px 15px; font-size: 13px; }
+  .frow + .frow { border-top: 1px dashed var(--line-soft); }
+  .frow .co { font-weight: 600; }
+  .frow .pos { color: var(--ink-2); font-size: 12px; }
+  .frow .right { margin-left: auto; font-size: 11.5px; color: var(--ink-3); white-space: nowrap; }
+  .frow .right.hot { color: #a5523f; font-weight: 600; }
+
+  .apply-stage { background: #f2eee7; border: 1px solid var(--line); border-radius: 16px; padding: 22px; }
+  .apply-card {
+    max-width: 560px; margin: 0 auto; background: var(--card);
+    border: 1px solid var(--line); border-radius: 14px; box-shadow: 0 10px 30px rgba(58,53,50,.08);
+    overflow: hidden;
+  }
+  .apply-card .top { padding: 18px 20px 14px; border-bottom: 1px solid var(--line-soft); }
+  .apply-card .top .step { font-size: 11.5px; color: var(--ink-3); letter-spacing: .04em; }
+  .apply-card .top h3 { margin: 3px 0 6px; font-family: "Songti SC", serif; font-size: 21px; font-weight: 600; }
+  .apply-card .top .tags { display: flex; gap: 6px; flex-wrap: wrap; }
+  .apply-card .body { padding: 18px 20px; }
+
+  .link-big {
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    height: 46px; border-radius: 10px; background: var(--terra); color: #fff;
+    font-size: 14.5px; font-weight: 600; text-decoration: none;
+    box-shadow: 0 3px 10px rgba(185,106,82,.22);
+  }
+  .link-sub { display: flex; gap: 8px; margin-top: 8px; }
+  .link-sub .btn { flex: 1; }
+
+  .script { margin-top: 18px; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+  .script .sh {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 12px; background: #fbf9f6; border-bottom: 1px solid var(--line-soft);
+    font-size: 12px; color: var(--ink-2);
+  }
+  .script .sh .right { margin-left: auto; }
+  .script .sc { padding: 12px 14px; font-size: 13px; color: var(--ink-2); line-height: 1.75; }
+  .kbd {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px;
+    background: #f2eee7; border: 1px solid var(--line); border-bottom-width: 2px;
+    border-radius: 4px; padding: 1px 5px; color: var(--ink-2);
+  }
+  .apply-card .foot {
+    padding: 14px 20px 18px; border-top: 1px solid var(--line-soft);
+    display: flex; gap: 10px; align-items: center; background: #fcfaf7;
+  }
+  .apply-card .foot .btn { height: 40px; padding: 0 20px; font-size: 14px; }
+  .apply-card .foot .btn.primary { flex: 1; }
+
+  .funnel-groups { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 10px; }
+  .fg {
+    border: 1px solid var(--line); background: var(--card); border-radius: 10px;
+    padding: 10px 12px; box-shadow: var(--shadow);
+  }
+  .fg .g-name { font-size: 12px; color: var(--ink-3); display: flex; align-items: center; gap: 5px; }
+  .fg .g-name .dot { width: 6px; height: 6px; border-radius: 50%; }
+  .fg .g-num { font-size: 24px; font-weight: 600; line-height: 1.2; font-variant-numeric: tabular-nums; }
+  .fg .g-num small { font-size: 12px; font-weight: 400; color: var(--ink-3); margin-left: 3px; }
+  .fg .g-list { margin-top: 4px; font-size: 11.5px; color: var(--ink-3); }
+  .fg.todo { border-color: #dfeae7; }
+  .fg.applied { border-color: #e2e9ef; }
+  .fg.zero { background: #fbf9f6; box-shadow: none; }
+  .fg.zero .g-num { color: #cfc8c0; }
+
+  .filters { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin: 16px 0; }
+  .search-mock {
+    display: flex; align-items: center; gap: 7px; flex: 1; min-width: 200px;
+    border: 1px solid var(--line); background: var(--card); border-radius: 8px;
+    padding: 7px 12px; color: var(--ink-3); font-size: 13px;
+  }
+  .select-mock {
+    border: 1px solid var(--line); background: var(--card); border-radius: 8px;
+    padding: 7px 11px; font-size: 12.5px; color: var(--ink-2); white-space: nowrap;
+  }
+  .select-mock.on { border-color: var(--terra); color: var(--terra); background: var(--terra-soft); }
+
+  .tbl { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  .tbl th {
+    text-align: left; font-weight: 500; color: var(--ink-3); font-size: 11.5px;
+    padding: 9px 12px; background: #fbf9f6; border-bottom: 1px solid var(--line);
+  }
+  .tbl td { padding: 10px 12px; border-bottom: 1px solid var(--line-soft); vertical-align: middle; }
+  .tbl tr:last-child td { border-bottom: none; }
+  .tbl .co { font-weight: 600; color: var(--ink); }
+  .tbl .pos { color: var(--ink-2); }
+  .tbl .dim { color: var(--ink-3); }
+  .tbl tr.hit td:first-child { box-shadow: inset 3px 0 0 #b98287; }
+
+  .tag-note {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px;
+    background: #fff; border: 1px dashed var(--terra); color: var(--terra);
+    font-size: 10.5px; font-weight: 600; line-height: 1; flex: none;
+  }
+  .legend {
+    margin-top: 34px; padding: 18px 20px; background: var(--card);
+    border: 1px solid var(--line); border-radius: 12px;
+  }
+  .legend h4 { margin: 0 0 12px; font-family: "Songti SC", serif; font-size: 16px; font-weight: 600; }
+  .legend ol { margin: 0; padding-left: 0; list-style: none; display: grid; grid-template-columns: 1fr 1fr; gap: 9px 24px; }
+  .legend li { display: flex; gap: 9px; font-size: 12.5px; color: var(--ink-2); align-items: flex-start; }
+  .legend li b { color: var(--ink); font-weight: 600; }
+  .legend code { font-size: 11.5px; background: #f2eee7; padding: 1px 4px; border-radius: 3px; }
+  .legend .foot { margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--line); font-size: 12px; color: var(--ink-3); }
+
+  @media (max-width: 720px) {
+    .wrap { padding: 26px 14px 60px; }
+    .follow-grid, .pack-grid { grid-template-columns: 1fr; }
+    .pack-item:nth-child(odd) { border-right: none; }
+    .funnel-groups { grid-template-columns: repeat(2, 1fr); }
+    .legend ol { grid-template-columns: 1fr; }
+    .page-head h2 { font-size: 20px; }
+    .row-meta { display: none; }
+    .pkg-mini { flex-wrap: wrap; }
+    .tbl th:nth-child(5), .tbl td:nth-child(5) { display: none; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="doc-head">
+    <h1 class="song">求职看板 · 改版示意图</h1>
+    <p>对应改版清单的 <b>B1 每日主线</b>（今天 / 本包 / 跟进 / 投递模式）与 <b>B2 全量页漏斗</b>。数字取自 2026-11-20 线上真实快照：58 条岗位、20 家公司、4 条已投、0 面试、0 Offer。</p>
+    <span class="hint">纯静态示意，无真实交互。确认布局后再动代码。</span>
+  </div>
+
+  <div class="tabs">
+    <span class="tabs-label">看板内部：</span>
+    <button class="tab on" data-s="today">今天</button>
+    <button class="tab" data-s="pack">本包</button>
+    <button class="tab" data-s="follow">跟进</button>
+    <button class="tab" data-s="apply">投递模式</button>
+    <button class="tab" data-s="all">全量</button>
+  </div>
+
+  <!-- ==================== 今天 ==================== -->
+  <section class="screen on" id="today">
+
+    <div class="page-head">
+      <div>
+        <h2 class="song">今天 · 11月20日 周四</h2>
+        <div class="today-sub"><b>1 家</b>排了今天，<b>4 家</b>逾期没投，已经投出去 <b>4 家</b></div>
+      </div>
+      <div class="right">
+        <button class="btn">打开链接清单</button>
+        <button class="btn primary">开始投</button>
+      </div>
+    </div>
+
+    <div class="pkg-mini">
+      <div>
+        <div class="label">今日的包</div>
+        <div class="name">包-2026-11-20</div>
+      </div>
+      <div class="bar"><i style="width:10%"></i></div>
+      <div class="num"><b>1</b> / 10</div>
+      <span class="tag-note">1</span>
+    </div>
+
+    <div class="section">
+      <div class="sec-head">
+        <h3>今日待投</h3><span class="count">1</span>
+        <span class="sub">没投出去的都在这儿，按计划日期排</span>
+        <span class="right"><span class="tag-note">2</span></span>
+      </div>
+      <div class="panel">
+        <div class="row-item">
+          <span class="cb"></span>
+          <div class="row-main">
+            <div><span class="co">快手</span> <span class="pos">· 策略产品经理-大模型数据</span></div>
+            <div style="margin-top:3px;display:flex;gap:6px;flex-wrap:wrap">
+              <span class="chip">北京</span>
+              <span class="chip tier-zhu">主力</span>
+              <span class="chip fresh">新岗 3 天</span>
+              <span class="chip small-co">中小厂</span>
+            </div>
+          </div>
+          <div class="row-meta"><span class="chip todo"><span class="dot"></span>待投递</span></div>
+          <div class="acts">
+            <a class="link" href="#">打开 JD</a>
+            <button class="btn mini">标记已投</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="sec-head">
+        <h3>逾期未投</h3><span class="count">4</span>
+        <span class="sub">排了日期没投，别再往下滚</span>
+        <span class="right">
+          <button class="btn mini">全部挪到今天</button>
+          <span class="tag-note" style="margin-left:6px">3</span>
+        </span>
+      </div>
+      <div class="panel">
+        <div class="row-item">
+          <span class="cb"></span>
+          <div class="row-main">
+            <div><span class="co">小红书</span> <span class="pos">· 品牌产品经理</span></div>
+          </div>
+          <div class="row-meta">
+            <span class="chip" style="background:#fbe9e6;color:#a5523f">逾期 1 天</span>
+            <span class="chip big">大厂</span>
+          </div>
+          <div class="acts"><a class="link" href="#">打开 JD</a></div>
+        </div>
+        <div class="row-item">
+          <span class="cb"></span>
+          <div class="row-main">
+            <div><span class="co">得物</span> <span class="pos">· AI搜推产品经理</span></div>
+          </div>
+          <div class="row-meta">
+            <span class="chip" style="background:#fbe9e6;color:#a5523f">逾期 1 天</span>
+            <span class="chip small-co">中小厂</span>
+          </div>
+          <div class="acts"><a class="link" href="#">打开 JD</a></div>
+        </div>
+        <div class="row-item">
+          <span class="cb"></span>
+          <div class="row-main">
+            <div><span class="co">字节跳动</span> <span class="pos">· AI产品经理 - 风控</span></div>
+          </div>
+          <div class="row-meta">
+            <span class="chip" style="background:#fbe9e6;color:#a5523f">逾期 1 天</span>
+            <span class="chip big">大厂</span>
+          </div>
+          <div class="acts"><a class="link" href="#">打开 JD</a></div>
+        </div>
+        <div class="row-item">
+          <span class="cb"></span>
+          <div class="row-main">
+            <div><span class="co">贝壳</span> <span class="pos">· 智能硬件产品经理</span></div>
+          </div>
+          <div class="row-meta">
+            <span class="chip" style="background:#fbe9e6;color:#a5523f">逾期 1 天</span>
+            <span class="chip small-co">中小厂</span>
+          </div>
+          <div class="acts"><a class="link" href="#">打开 JD</a></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="sec-head">
+        <h3>今天已投</h3><span class="count">0</span>
+        <span class="sub">投完的留在这儿，不会从列表里消失</span>
+        <span class="right"><span class="tag-note">4</span></span>
+      </div>
+      <div class="panel">
+        <div class="row-item done">
+          <span class="cb checked"></span>
+          <div class="row-main">
+            <div><span class="co">携程</span> <span class="pos">· 内容产品经理</span></div>
+          </div>
+          <div class="row-meta"><span class="chip applied"><span class="dot"></span>简历筛选中</span></div>
+          <div class="acts"><span style="font-size:11.5px;color:var(--ink-3)">昨天投的，仅示意</span></div>
+        </div>
+        <div class="empty-note">今天还没投出去。点右上「开始投」进投递模式，投完一条点「投完了」，这里会多一行。</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== 本包 ==================== -->
+  <section class="screen" id="pack">
+
+    <div class="page-head">
+      <div>
+        <h2 class="song">本包</h2>
+        <div class="today-sub">按包看进度。一包投完再开下一包，别混着投</div>
+      </div>
+      <div class="right"><span class="tag-note">5</span></div>
+    </div>
+
+    <div class="pack">
+      <div class="pack-head">
+        <div class="l1">
+          <h3>包-2026-11-20</h3>
+          <span class="chip">今天</span>
+          <span style="font-size:12px;color:var(--ink-3)">10 个岗位</span>
+          <span class="spacer"></span>
+          <span style="font-size:13px;color:var(--ink-2)">进度 <b style="color:var(--ink)">1</b> / 10</span>
+          <span class="tag-note">6</span>
+        </div>
+        <div class="bar" style="margin-top:10px"><i style="width:10%"></i></div>
+
+        <div class="check-line">
+          <span class="k">配比</span>
+          <span>中小厂 <b>8</b> / 大厂 <b>2</b> <span class="ok">（上限 2 ✓）</span></span>
+          <span class="k">城市</span>
+          <span>京津 <b>9</b> · 上海 1 <span class="warn">（上海只在特别对口时投）</span></span>
+          <span class="k">新岗</span>
+          <span><b>4</b> 个 7 天内发布</span>
+          <span class="k">红线</span>
+          <span class="ok">0 命中</span>
+          <span style="margin-left:auto"><span class="tag-note">7</span></span>
+        </div>
+      </div>
+
+      <div class="pack-grid">
+        <div class="pack-item done">
+          <span class="st" style="background:var(--blue)"></span>
+          <div>
+            <div class="co">快手 · 策略产品经理-大模型数据</div>
+            <div class="pos">北京 · 主力 · 新岗</div>
+          </div>
+          <div class="meta"><span class="chip applied"><span class="dot"></span>简历筛选中</span></div>
+        </div>
+        <div class="pack-item">
+          <span class="st" style="background:var(--teal)"></span>
+          <div>
+            <div class="co">得物 · 商家履约产品经理</div>
+            <div class="pos">上海 · 主力</div>
+          </div>
+          <div class="meta"><span class="chip todo"><span class="dot"></span>待投递</span></div>
+        </div>
+        <div class="pack-item">
+          <span class="st" style="background:var(--teal)"></span>
+          <div>
+            <div class="co">贝壳 · 智能硬件产品经理</div>
+            <div class="pos">北京 · 保底</div>
+          </div>
+          <div class="meta"><span class="chip todo"><span class="dot"></span>待投递</span></div>
+        </div>
+        <div class="pack-item">
+          <span class="st" style="background:var(--teal)"></span>
+          <div>
+            <div class="co">用友 · B端产品经理</div>
+            <div class="pos">北京 · 主力 · 新岗</div>
+          </div>
+          <div class="meta"><span class="chip todo"><span class="dot"></span>待投递</span></div>
+        </div>
+        <div class="pack-item">
+          <span class="st" style="background:var(--teal)"></span>
+          <div>
+            <div class="co">小红书 · 品牌产品经理</div>
+            <div class="pos">北京 · 冲刺</div>
+          </div>
+          <div class="meta"><span class="chip todo"><span class="dot"></span>待投递</span><span class="chip big">大厂</span></div>
+        </div>
+        <div class="pack-item">
+          <span class="st" style="background:var(--teal)"></span>
+          <div>
+            <div class="co">字节跳动 · AI产品经理（增长）</div>
+            <div class="pos">北京 · 冲刺 · 新岗</div>
+          </div>
+          <div class="meta"><span class="chip todo"><span class="dot"></span>待投递</span><span class="chip big">大厂</span></div>
+        </div>
+        <div class="pack-item">
+          <span class="st" style="background:var(--teal)"></span>
+          <div>
+            <div class="co">携程 · 内容产品经理</div>
+            <div class="pos">上海 · 保底</div>
+          </div>
+          <div class="meta"><span class="chip todo"><span class="dot"></span>待投递</span></div>
+        </div>
+        <div class="pack-item">
+          <span class="st" style="background:var(--teal)"></span>
+          <div>
+            <div class="co">金山办公 · WPS AI 产品</div>
+            <div class="pos">北京 · 主力 · 新岗</div>
+          </div>
+          <div class="meta"><span class="chip todo"><span class="dot"></span>待投递</span></div>
+        </div>
+        <div class="pack-item">
+          <span class="st" style="background:var(--teal)"></span>
+          <div>
+            <div class="co">新东方 · 数据产品经理</div>
+            <div class="pos">北京 · 保底</div>
+          </div>
+          <div class="meta"><span class="chip todo"><span class="dot"></span>待投递</span></div>
+        </div>
+        <div class="pack-item">
+          <span class="st" style="background:var(--teal)"></span>
+          <div>
+            <div class="co">信安世纪 · 产品经理</div>
+            <div class="pos">北京 · 保底</div>
+          </div>
+          <div class="meta"><span class="chip todo"><span class="dot"></span>待投递</span></div>
+        </div>
+      </div>
+
+      <div class="pack-foot">
+        <button class="btn primary">开始投这包</button>
+        <button class="btn">整包标已投</button>
+        <button class="btn ghost">导出清单</button>
+        <span class="note">还剩 9 个 · 预计 40 分钟</span>
+      </div>
+    </div>
+
+    <div class="pack dim">
+      <div class="pack-head">
+        <div class="l1">
+          <h3>包-2026-11-16</h3>
+          <span class="chip">历史</span>
+          <span style="font-size:12px;color:var(--ink-3)">45 个岗位</span>
+          <span class="spacer"></span>
+          <span style="font-size:13px;color:var(--ink-2)">进度 <b style="color:var(--ink)">3</b> / 45</span>
+          <span class="tag-note">8</span>
+        </div>
+        <div class="bar" style="margin-top:10px"><i style="width:6.6%"></i></div>
+        <div class="check-line">
+          <span class="k">配比</span>
+          <span class="warn">大厂 38 · 超上限 36 个</span>
+          <span class="k">城市</span>
+          <span>京津 20 · 上海 25</span>
+          <span class="k">新岗</span>
+          <span>未知（42 条没填发布时间）</span>
+          <span style="margin-left:auto"><button class="btn mini">补字段</button></span>
+        </div>
+      </div>
+      <div class="pack-foot">
+        <button class="btn">展开 45 个</button>
+        <span class="note">这包是旧规则下灌进来的，只留着查历史，不参与今日排期</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== 跟进 ==================== -->
+  <section class="screen" id="follow">
+
+    <div class="page-head">
+      <div>
+        <h2 class="song">跟进</h2>
+        <div class="today-sub">投出去之后的事：谁没理我、我该催谁、卡了多久</div>
+      </div>
+      <div class="right"><span class="tag-note">9</span></div>
+    </div>
+
+    <div class="follow-grid">
+
+      <div class="panel follow-card">
+        <div class="head">
+          <h4>等回音</h4><span class="n">4 家</span>
+          <span class="right"><button class="btn mini">生成待办</button></span>
+        </div>
+        <div class="body">
+          <div class="frow">
+            <div><span class="co">携程</span> <span class="pos">内容产品经理</span></div>
+            <div class="right">投了 2 天</div>
+          </div>
+          <div class="frow">
+            <div><span class="co">快手</span> <span class="pos">AI Agent 产品经理</span></div>
+            <div class="right">投了 2 天</div>
+          </div>
+          <div class="frow">
+            <div><span class="co">得物</span> <span class="pos">数据产品经理-95分</span></div>
+            <div class="right">投了 4 天</div>
+          </div>
+          <div class="frow">
+            <div><span class="co">贝壳</span> <span class="pos">J73047 产品经理</span></div>
+            <div class="right hot">投了 16 天 · 可催</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel follow-card">
+        <div class="head">
+          <h4>该做了</h4><span class="n">2 项</span>
+          <span class="right"><button class="btn mini">加到待办</button></span>
+        </div>
+        <div class="body">
+          <div class="frow">
+            <div><span class="co">小红书</span> <span class="pos">等内推人回复</span></div>
+            <div class="right hot">今天该问</div>
+          </div>
+          <div class="frow">
+            <div><span class="co">字节跳动</span> <span class="pos">笔试链接 3 天后过期</span></div>
+            <div class="right">11-23</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel follow-card">
+        <div class="head">
+          <h4>卡住了</h4><span class="n">6 家</span>
+          <span class="right"><span class="tag-note">10</span></span>
+        </div>
+        <div class="body">
+          <div class="frow">
+            <div><span class="co">得物</span> <span class="pos">AI搜推产品经理</span></div>
+            <div class="right">简历筛选中 21 天</div>
+          </div>
+          <div class="frow">
+            <div><span class="co">快手</span> <span class="pos">平台产品经理-客服平台</span></div>
+            <div class="right">简历筛选中 18 天</div>
+          </div>
+          <div class="frow">
+            <div><span class="co">贝壳</span> <span class="pos">J72705 产品经理</span></div>
+            <div class="right">简历筛选中 16 天</div>
+          </div>
+          <div class="frow">
+            <div style="color:var(--ink-3);font-size:12px">还有 3 家 · 点开看</div>
+            <div class="right">全部 &gt;</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel follow-card">
+        <div class="head">
+          <h4>逾期没投</h4><span class="n">4 家</span>
+          <span class="right"><button class="btn mini">全部挪到今天</button></span>
+        </div>
+        <div class="body">
+          <div class="frow">
+            <div><span class="co">小红书</span> <span class="pos">品牌产品经理</span></div>
+            <div class="right hot">逾期 1 天</div>
+          </div>
+          <div class="frow">
+            <div><span class="co">得物</span> <span class="pos">AI搜推产品经理</span></div>
+            <div class="right hot">逾期 1 天</div>
+          </div>
+          <div class="frow">
+            <div><span class="co">字节跳动</span> <span class="pos">AI产品经理 - 风控</span></div>
+            <div class="right hot">逾期 1 天</div>
+          </div>
+          <div class="frow">
+            <div><span class="co">贝壳</span> <span class="pos">智能硬件产品经理</span></div>
+            <div class="right hot">逾期 1 天</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ==================== 投递模式 ==================== -->
+  <section class="screen" id="apply">
+    <div class="page-head">
+      <div>
+        <h2 class="song">投递模式</h2>
+        <div class="today-sub">一次只处理一个。开链接、复制招呼语、确认用哪版简历，投完点「投完了」自动跳下一个</div>
+      </div>
+      <div class="right"><span class="tag-note">11</span></div>
+    </div>
+
+    <div class="apply-stage">
+      <div class="apply-card">
+        <div class="top">
+          <div class="step">包-2026-11-20 · 第 2 个 / 共 10 个</div>
+          <h3 class="song">快手 · 策略产品经理-大模型数据</h3>
+          <div class="tags">
+            <span class="chip">北京 · 海淀</span>
+            <span class="chip tier-zhu">主力</span>
+            <span class="chip fresh">新岗 3 天</span>
+            <span class="chip small-co">中小厂</span>
+            <span class="chip">BOSS直聊</span>
+          </div>
+        </div>
+
+        <div class="body">
+          <a class="link-big" href="#">打开岗位详情页 ↗</a>
+          <div class="link-sub">
+            <button class="btn">复制链接</button>
+            <button class="btn">我先看看 JD</button>
+          </div>
+
+          <div class="script">
+            <div class="sh">
+              招呼语 · 从备注里自动抽出来
+              <span class="right"><button class="btn mini">复制</button></span>
+            </div>
+            <div class="sc">
+              您好，看到贵司在招策略产品经理（大模型数据方向），我在美团做过视觉模型评测口径梳理和批量导入链路，熟悉数据集与指标设计，想申请这个岗位。
+            </div>
+          </div>
+
+          <div class="script" style="margin-top:12px">
+            <div class="sh">
+              投递用的简历
+              <span class="right"><a class="link" href="#">打开文件</a></span>
+            </div>
+            <div class="sc" style="font-size:12.5px">
+              AI产品经理_通用版.pdf
+              <span style="color:var(--ink-3)">· 定向版_通用AI应用</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="foot">
+          <button class="btn">跳过</button>
+          <button class="btn primary">投完了 · 下一个</button>
+        </div>
+      </div>
+
+      <div style="max-width:560px;margin:14px auto 0;display:flex;gap:14px;justify-content:center;flex-wrap:wrap;font-size:12px;color:var(--ink-3)">
+        <span><span class="kbd">J</span> / <span class="kbd">K</span> 切岗位</span>
+        <span><span class="kbd">Enter</span> 标记已投</span>
+        <span><span class="kbd">Esc</span> 退出</span>
+        <span>投完自动写投递日期 + 状态前进一步</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== 全量 ==================== -->
+  <section class="screen" id="all">
+
+    <div class="page-head">
+      <div>
+        <h2 class="song">全量</h2>
+        <div class="today-sub">所有岗位的总账。漏斗按语义分组，筛选可以叠加</div>
+      </div>
+      <div class="right">
+        <button class="btn">批量导入</button>
+        <button class="btn primary">+ 添加公司</button>
+      </div>
+    </div>
+
+    <div class="funnel-groups">
+      <div class="fg todo">
+        <div class="g-name"><span class="dot" style="background:var(--teal)"></span>未投
+          <span class="tag-note" style="margin-left:auto">12</span>
+        </div>
+        <div class="g-num">54<small>条</small></div>
+        <div class="g-list">待投递 54 · 其中逾期 4 · 未排期 39</div>
+      </div>
+      <div class="fg applied">
+        <div class="g-name"><span class="dot" style="background:var(--blue)"></span>已投等消息</div>
+        <div class="g-num">4<small>条</small></div>
+        <div class="g-list">简历筛选中 4</div>
+      </div>
+      <div class="fg zero">
+        <div class="g-name"><span class="dot" style="background:var(--amber)"></span>流程中</div>
+        <div class="g-num">0<small>条</small></div>
+        <div class="g-list">一面 / 二面 / 三面 / HR 面 全 0</div>
+      </div>
+      <div class="fg zero">
+        <div class="g-name"><span class="dot" style="background:var(--slate)"></span>结束</div>
+        <div class="g-num">0<small>条</small></div>
+        <div class="g-list">Offer 0 · 已取消 0</div>
+      </div>
+    </div>
+
+    <div class="filters">
+      <div class="search-mock">⌕ 搜公司 / 岗位 / JD 编号 / 备注</div>
+      <div class="select-mock">城市：北京 ▾</div>
+      <div class="select-mock on">公司类型：中小厂 ▾</div>
+      <div class="select-mock on">新岗（7 天内）</div>
+      <div class="select-mock">来源：全部 ▾</div>
+      <div class="select-mock">档位：全部 ▾</div>
+      <span style="font-size:11.5px;color:var(--ink-3)">筛选可叠加，点漏斗不清时间</span>
+      <span class="tag-note">13</span>
+    </div>
+
+    <div class="panel" style="overflow:hidden">
+      <table class="tbl">
+        <thead>
+          <tr>
+            <th style="width:26px"></th>
+            <th>公司 / 岗位</th>
+            <th>城市</th>
+            <th>发布</th>
+            <th>来源</th>
+            <th>档位</th>
+            <th>计划 / 已投</th>
+            <th>状态</th>
+            <th>链接</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="cb" style="display:inline-block"></span></td>
+            <td><span class="co">用友</span> <span class="pos">· B端产品经理</span></td>
+            <td>北京</td>
+            <td><span style="color:var(--terra)">11-18</span></td>
+            <td class="dim">官网</td>
+            <td><span class="chip tier-zhu">主力</span></td>
+            <td><span class="chip fresh">今天投</span></td>
+            <td><span class="chip todo"><span class="dot"></span>待投递</span></td>
+            <td><a class="link" href="#">JD ↗</a></td>
+          </tr>
+          <tr>
+            <td><span class="cb" style="display:inline-block"></span></td>
+            <td><span class="co">金山办公</span> <span class="pos">· WPS AI 产品</span></td>
+            <td>北京</td>
+            <td><span style="color:var(--terra)">11-19</span></td>
+            <td class="dim">BOSS直聊</td>
+            <td><span class="chip tier-zhu">主力</span></td>
+            <td><span class="chip fresh">今天投</span></td>
+            <td><span class="chip todo"><span class="dot"></span>待投递</span></td>
+            <td><a class="link" href="#">JD ↗</a></td>
+          </tr>
+          <tr>
+            <td><span class="cb" style="display:inline-block"></span></td>
+            <td><span class="co">得物</span> <span class="pos">· AI搜推产品经理</span></td>
+            <td>上海</td>
+            <td class="dim">—</td>
+            <td class="dim">官网</td>
+            <td><span class="chip tier-bao">保底</span></td>
+            <td><span class="chip" style="background:#fbe9e6;color:#a5523f">逾期 1 天</span></td>
+            <td><span class="chip todo"><span class="dot"></span>待投递</span></td>
+            <td><a class="link" href="#">JD ↗</a></td>
+          </tr>
+          <tr>
+            <td><span class="cb" style="display:inline-block"></span></td>
+            <td><span class="co">快手</span> <span class="pos">· AI Agent 产品经理</span></td>
+            <td>北京</td>
+            <td class="dim">—</td>
+            <td class="dim">BOSS直聊</td>
+            <td><span class="chip tier-chong">冲刺</span></td>
+            <td><span class="chip">已投 11-18</span></td>
+            <td><span class="chip applied"><span class="dot"></span>简历筛选中</span></td>
+            <td><a class="link" href="#">JD ↗</a></td>
+          </tr>
+          <tr class="hit">
+            <td><span class="cb" style="display:inline-block"></span></td>
+            <td><span class="co">美团</span> <span class="pos">· 产品经理（红线示意）</span></td>
+            <td>北京</td>
+            <td class="dim">—</td>
+            <td class="dim">内推</td>
+            <td class="dim">—</td>
+            <td><span class="chip" style="background:#fbe9e6;color:#a5523f">未排期</span></td>
+            <td><span class="chip todo"><span class="dot"></span>待投递</span></td>
+            <td><span style="color:#a5523f;font-size:12px">红线</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p style="font-size:11.5px;color:var(--ink-3);margin:10px 2px 0">
+      「发布」列空着的 57 条不会算进新岗；顶部会提示「N 条没填发布时间」，点一下批量补。
+    </p>
+  </section>
+
+  <!-- ==================== 图例 ==================== -->
+  <div class="legend">
+    <h4>这版改了什么</h4>
+    <ol>
+      <li><span class="tag-note">1</span><span><b>今日的包常驻顶部</b>：进看板先知道这包投到哪，不用切视图算。</span></li>
+      <li><span class="tag-note">2</span><span><b>「今日待投」只放今天要投的</b>，新建岗位默认排今天，不会再出现「加了但没看见」。</span></li>
+      <li><span class="tag-note">3</span><span><b>逾期单独成块 + 一键挪到今天</b>，不用逐个勾选再排期。</span></li>
+      <li><span class="tag-note">4</span><span><b>已投的留在原位变灰打勾</b>，不再从列表消失；投递日期只由「投完了」写入。</span></li>
+      <li><span class="tag-note">5</span><span><b>新增「本包」工作区</b>，以批为单位看进度，替代现在跨包混勾的批量条。</span></li>
+      <li><span class="tag-note">6</span><span><b>进度 x/y 直接给数字</b>，投完一条就地 +1，不刷新整页。</span></li>
+      <li><span class="tag-note">7</span><span><b>配比体检行</b>：中小厂 / 大厂 / 城市 / 新岗 / 红线当场核对，超上限变红字。</span></li>
+      <li><span class="tag-note">8</span><span><b>历史包只读折叠</b>：旧规则灌进来的 45 条留着查，不干扰今天的排期。</span></li>
+      <li><span class="tag-note">9</span><span><b>新增「跟进」工作区</b>，把「投完就看不见」补上：等回音、该做了、卡住了、逾期。</span></li>
+      <li><span class="tag-note">10</span><span><b>「卡住了」按状态停留天数算</b>，需要新增 <code>status_changed_at</code> 字段（B0）。</span></li>
+      <li><span class="tag-note">11</span><span><b>投递模式</b>：大链接 + 招呼语自动抽取一键复制 + 简历直链 + 投完跳下一条。</span></li>
+      <li><span class="tag-note">12</span><span><b>漏斗从 10 列压成 4 组</b>，0 人的组变灰不再占位；细分在 hover / 点开后展开。</span></li>
+      <li><span class="tag-note">13</span><span><b>筛选可叠加</b>：城市 / 公司类型 / 来源 / 新岗 / 档位，并且点漏斗不再清空时间范围。</span></li>
+    </ol>
+    <div class="foot">
+      对应 <code>docs/求职看板改版清单.md</code> 的 B1（1–13）与 B2 的 5.1–5.2、5.9。
+      要调整的话，重点看三处：默认落在哪个工作区、「本包」和「全量」的边界、投递模式是全屏还是抽屉。
+    </div>
+  </div>
+
+</div>
+
+<script>
+  const tabs = document.querySelectorAll('.tab');
+  const screens = document.querySelectorAll('.screen');
+  tabs.forEach((t) => {
+    t.addEventListener('click', () => {
+      tabs.forEach((x) => x.classList.toggle('on', x === t));
+      const id = t.dataset.s;
+      screens.forEach((s) => s.classList.toggle('on', s.id === id));
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+  });
+</script>
+</body>
+</html>

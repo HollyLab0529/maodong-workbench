@@ -65,6 +65,21 @@ export async function deleteRow(coll, id) {
   return request(`/api/data/${coll}/${id}`, "DELETE");
 }
 
+// 批量写入：服务端事务里全成功或全失败，别在前端 for 循环串行 PATCH
+export async function bulkInsertRows(coll, rows) {
+  const data = await request(`/api/data/${coll}/bulk`, "POST", { rows });
+  return data.rows || [];
+}
+
+export async function bulkUpdateRows(coll, ids, patch) {
+  return request(`/api/data/${coll}/bulk`, "PATCH", { ids, patch });
+}
+
+// 粘贴一条招聘链接，先猜公司 / 岗位 / 城市 / 发布时间，只做预填
+export async function parseJobLink(url) {
+  return request("/api/jobs/parse-link", "POST", { url });
+}
+
 export async function uploadImage(file) {
   const fd = new FormData();
   fd.append("file", file);

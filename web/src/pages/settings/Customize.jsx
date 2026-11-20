@@ -2,9 +2,15 @@ import { useEffect, useState } from "react";
 import { listRows, insertRow, updateRow } from "../../api";
 import { Button, Input, Label, toast } from "../../components/ui";
 import { JOB_STATUSES, JOB_STATUS_TONE, TONE_NAMES, toneChip, registerTagColors } from "../../colors";
+import { DEFAULT_STATUS_GROUP, DEFAULT_STATUS_SHORT, STATUS_GROUPS } from "../../jobs";
 import { ArrowUp, ArrowDown, Plus, RotateCcw, Check, Palette, Tags, Trash2 } from "lucide-react";
 
-const DEFAULT_STATUSES = JOB_STATUSES.map((name) => ({ name, tone: JOB_STATUS_TONE[name] || "slate" }));
+const DEFAULT_STATUSES = JOB_STATUSES.map((name) => ({
+  name,
+  tone: JOB_STATUS_TONE[name] || "slate",
+  group: DEFAULT_STATUS_GROUP[name] || "",
+  short: DEFAULT_STATUS_SHORT[name] || name.slice(0, 1),
+}));
 
 const card = "rounded-xl border border-slate-200 bg-white p-5";
 
@@ -89,8 +95,18 @@ export default function Customize() {
   };
 
   const saveStatuses = async () => {
-    const clean = statuses.map((s) => ({ name: String(s.name).trim(), tone: s.tone })).filter((s) => s.name);
+    const clean = statuses
+      .map((s) => ({
+        name: String(s.name).trim(),
+        tone: s.tone,
+        group: STATUS_GROUPS.some((g) => g.key === s.group) ? s.group : DEFAULT_STATUS_GROUP[String(s.name).trim()] || "",
+        short: String(s.short || "").trim().slice(0, 1) || DEFAULT_STATUS_SHORT[String(s.name).trim()] || String(s.name).trim().slice(0, 1),
+      }))
+      .filter((s) => s.name);
     if (!clean.length) return toast.error("至少保留一个状态");
+    // 每个语义组至少留一个状态，不然漏斗会整段消失
+    const emptyGroup = STATUS_GROUPS.find((g) => !clean.some((s) => s.group === g.key));
+    if (emptyGroup) return toast.error(`「${emptyGroup.label}」组至少要有一个状态`);
     setSavingStatus(true);
     try {
       await saveSetting("job_statuses", JSON.stringify(clean));
@@ -156,12 +172,28 @@ export default function Customize() {
           <Palette className="h-4 w-4 text-terracotta" /> 求职状态自定义
         </h2>
         <p className="mb-3 text-xs text-slate-500">
-          增删、排序、配色都会反映到求职看板和总览页;历史记录里的旧状态名以自动配色兜底,不会丢。
+          增删、排序、配色都会反映到求职看板和总览页;「分组」决定状态落在漏斗哪一段（未投 / 已投等消息 / 流程中 / 结束），「简」是日历徽标用的一个字。历史记录里的旧状态名以自动配色兜底,不会丢。
         </p>
         <div className="space-y-1.5">
           {statuses.map((s, i) => (
-            <div key={i} className="flex items-center gap-2 rounded-lg bg-slate-50 px-2.5 py-1.5">
+            <div key={i} className="flex flex-wrap items-center gap-2 rounded-lg bg-slate-50 px-2.5 py-1.5">
               <span className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] ${toneChip(s.tone)}`}>{s.name}</span>
+              <select
+                value={s.group || ""}
+                onChange={(e) => setStatuses((l) => l.map((x, j) => (j === i ? { ...x, group: e.target.value } : x)))}
+                className="h-7 rounded-md border border-slate-200 bg-white px-1.5 text-[11px] text-slate-600 outline-none focus:border-terracotta"
+                title="落在漏斗哪一段"
+              >
+                {STATUS_GROUPS.map((g) => <option key={g.key} value={g.key}>{g.label}</option>)}
+              </select>
+              <input
+                value={s.short || ""}
+                onChange={(e) => setStatuses((l) => l.map((x, j) => (j === i ? { ...x, short: e.target.value } : x)))}
+                maxLength={1}
+                placeholder="简"
+                className="h-7 w-8 rounded-md border border-slate-200 bg-white text-center text-[11px] text-slate-600 outline-none focus:border-terracotta"
+                title="一个字，日历徽标用"
+              />
               <div className="ml-auto"><TonePicker value={s.tone} onPick={(t) => setStatuses((l) => l.map((x, j) => (j === i ? { ...x, tone: t } : x)))} /></div>
               <div className="flex shrink-0 items-center gap-0.5">
                 <button onClick={() => move(i, -1)} className="rounded p-1 text-slate-400 hover:bg-slate-200 hover:text-slate-700" title="上移"><ArrowUp className="h-3.5 w-3.5" /></button>
@@ -185,7 +217,7 @@ export default function Customize() {
               const name = newStatus.trim();
               if (!name) return toast.error("先填状态名");
               if (statuses.some((s) => s.name === name)) return toast.error("已有同名状态");
-              setStatuses((l) => [...l, { name, tone: newStatusTone }]);
+              setStatuses((l) => [...l, { name, tone: newStatusTone, group: "progress", short: name.slice(0, 1) }]);
               setNewStatus("");
             }}
           ><Plus className="h-3.5 w-3.5" /> 添加</Button>

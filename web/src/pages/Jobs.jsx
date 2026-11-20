@@ -14,6 +14,8 @@ const TABS = [
 
 export default function Jobs() {
   const [tab, setTab] = useState("board");
+  // 简历库点「被 N 个岗位引用」时，把简历 id 交给看板，让全量视图直接筛出来
+  const [resumeFocus, setResumeFocus] = useState(null);
 
   return (
     <Layout>
@@ -32,9 +34,16 @@ export default function Jobs() {
           </button>
         ))}
       </div>
-      {tab === "board" ? <Board /> : null}
+      {tab === "board" ? <Board resumeFocus={resumeFocus} /> : null}
       {tab === "interviews" ? <Interviews /> : null}
-      {tab === "resumes" ? <Resumes /> : null}
+      {tab === "resumes" ? (
+        <Resumes
+          onJumpToResume={(r) => {
+            setResumeFocus({ id: r.id, name: r.name, at: Date.now() });
+            setTab("board");
+          }}
+        />
+      ) : null}
       {tab === "offers" ? <Offers /> : null}
     </Layout>
   );

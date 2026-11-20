@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import Layout, { PageHeader } from "../components/Layout";
-import { listRows, insertRow, deleteRow, updateRow, todayStr } from "../api";
+import { listRows, insertRow, deleteRow, updateRow, bulkInsertRows, todayStr } from "../api";
 import { useLiveReload } from "../live";
 import { Button, Input, Label, Checkbox, Modal, EmptyState, Loading, toast } from "../components/ui";
-import { ChevronLeft, ChevronRight, Cake, Plus, Trash2, CalendarHeart } from "lucide-react";
+import { ChevronLeft, ChevronRight, Cake, Plus, Trash2, CalendarHeart, ListTodo } from "lucide-react";
+import { todoRow } from "../jobs";
 
 const WEEK = ["一", "二", "三", "四", "五", "六", "日"];
 
@@ -50,6 +51,7 @@ export default function Calendar() {
   const [todos, setTodos] = useState([]);
   const [notes, setNotes] = useState([]);
   const [anns, setAnns] = useState([]);
+  const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState(null); // 选中的日期字符串
   const [annForm, setAnnForm] = useState({ title: "", date: "", repeat: "yearly", note: "" });
@@ -57,10 +59,14 @@ export default function Calendar() {
 
   const load = async () => {
     try {
-      const [t, n, a] = await Promise.all([listRows("todos"), listRows("quick_notes"), listRows("anniversaries")]);
+      const [t, n, a, j] = await Promise.all([
+        listRows("todos"), listRows("quick_notes"), listRows("anniversaries"),
+        listRows("job_apps").catch(() => []), // 求职没配好也不拖累日历
+      ]);
       setTodos(t);
       setNotes(n);
       setAnns(a);
+      setJobs(j);
     } catch (e) {
       toast.error("加载失败：" + e.message);
     } finally {
@@ -74,7 +80,7 @@ export default function Calendar() {
 
   const byDay = useMemo(() => {
     const map = {};
-    const touch = (d) => (map[d] = map[d] || { todos: [], notes: [], anns: [] });
+    const touch = (d) => (map[d] = map[d] || { todos: [], notes: [], anns: [], jobs: [] });
     todos.forEach((t) => {
       const d = String(t.due_date || "").slice(0, 10);
       if (d) touch(d).todos.push(t);
@@ -82,6 +88,13 @@ export default function Calendar() {
     notes.forEach((n) => {
       const d = String(n.created_at || "").slice(0, 10);
       if (d) touch(d).notes.push(n);
+    });
+    // 求职：计划投和已投分开，点开当天能看到是谁
+    jobs.forEach((j) => {
+      const plan = String(j.plan_date || "").slice(0, 10);
+      const applied = String(j.applied_date || "").slice(0, 10);
+      if (plan) touch(plan).jobs.push({ ...j, _kind: "plan" });
+      if (applied && applied !== plan) touch(applied).jobs.push({ ...j, _kind: "applied" });
     });
     anns.forEach((a) => {
       if (!a.date) return;
@@ -95,17 +108,32 @@ export default function Calendar() {
       }
     });
     return map;
-  }, [todos, notes, anns, cells]);
+  }, [todos, notes, anns, jobs, cells]);
 
   // 选中日期的数据（yearly 纪念日按规则匹配）
   const dayDetail = useMemo(() => {
     if (!selected) return null;
-    const base = byDay[selected] || { todos: [], notes: [], anns: [] };
+    const base = byDay[selected] || { todos: [], notes: [], anns: [], jobs: [] };
     return {
       ...base,
       anns: anns.filter((a) => annOnDay(a, selected)),
     };
   }, [selected, byDay, anns]);
+
+  // 逾期没投的：计划日期过了还没投，一键生成待办提醒自己
+  const overdueJobs = useMemo(
+    () => jobs.filter((j) => j.plan_date && j.plan_date < today && !j.applied_date),
+    [jobs, today]
+  );
+  const genOverdueTodos = async () => {
+    if (!overdueJobs.length) return;
+    try {
+      await bulkInsertRows("todos", overdueJobs.map((a) => todoRow(a, "补投（已逾期）", today)));
+      toast.success(`已生成 ${overdueJobs.length} 条补投待办`);
+    } catch (e) {
+      toast.error("生成待办失败：" + e.message);
+    }
+  };
 
   const shift = (delta) => {
     setCur(({ y, m }) => {
@@ -262,6 +290,8 @@ export default function Calendar() {
                         {info?.anns?.length ? <span className="h-1.5 w-1.5 rounded-full bg-terracotta" title="纪念日" /> : null}
                         {info?.todos?.length ? <span className="h-1.5 w-1.5 rounded-full bg-slate-500" title="待办" /> : null}
                         {info?.notes?.length ? <span className="h-1.5 w-1.5 rounded-full border border-slate-400 bg-transparent" title="随记" /> : null}
+                        {info?.jobs?.some((j) => j._kind === "plan") ? <span className="h-1.5 w-1.5 rounded-full bg-amber-500" title="计划投递" /> : null}
+                        {info?.jobs?.some((j) => j._kind === "applied") ? <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" title="已投" /> : null}
                       </span>
                       {/* 桌面端：文字摘要 */}
                       <span className="hidden w-full flex-col gap-0.5 md:flex">
@@ -282,6 +312,11 @@ export default function Calendar() {
                             {info.notes.length} 条随记
                           </span>
                         ) : null}
+                        {info?.jobs?.length ? (
+                          <span className="truncate text-[10px] leading-tight text-slate-500">
+                            {info.jobs.filter((j) => j._kind === "applied").length}/{info.jobs.length} 已投
+                          </span>
+                        ) : null}
                       </span>
                     </span>
                   </button>
@@ -295,7 +330,19 @@ export default function Calendar() {
             <span className="flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-terracotta" />纪念日</span>
             <span className="flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-slate-500" />待办</span>
             <span className="flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full border border-slate-400" />随记</span>
+            <span className="flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-amber-500" />计划投递</span>
+            <span className="flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />已投</span>
           </div>
+
+          {/* 逾期没投：和跟进页同一个口径，一键生成待办 */}
+          {overdueJobs.length ? (
+            <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-amber-200 bg-amber-50/60 px-4 py-3">
+              <span className="text-xs text-amber-700">逾期没投 {overdueJobs.length} 家：{overdueJobs.map((j) => j.company).join("、")}</span>
+              <Button size="sm" variant="outline" className="ml-auto" onClick={genOverdueTodos}>
+                <ListTodo className="h-3.5 w-3.5" /> 生成待办
+              </Button>
+            </div>
+          ) : null}
 
           <p className="text-center text-[11px] text-slate-300">点任意一天，看那天的待办、随记和纪念日</p>
         </div>
@@ -397,6 +444,35 @@ export default function Calendar() {
               )}
               <p className="mt-1.5 text-[11px] text-slate-300">去「待办」页添加带截止日期的任务，会出现在这里</p>
             </div>
+
+            {/* 求职投递 */}
+            {dayDetail.jobs?.length ? (
+              <div>
+                <h3 className="mb-2 text-sm font-semibold text-slate-900">求职投递</h3>
+                <div className="space-y-1.5">
+                  {dayDetail.jobs.map((j) => (
+                    <a
+                      key={`${j.id}-${j._kind}`}
+                      href="#/jobs"
+                      className="flex items-center gap-2 rounded-lg bg-slate-50 px-3 py-2 hover:bg-slate-100"
+                    >
+                      <span
+                        className={`h-1.5 w-1.5 shrink-0 rounded-full ${j._kind === "applied" ? "bg-emerald-500" : "bg-amber-500"}`}
+                        title={j._kind === "applied" ? "已投" : "计划投"}
+                      />
+                      <span className="min-w-0 flex-1 truncate text-sm text-slate-800">
+                        {j.company}
+                        {j.position ? <span className="ml-1 text-xs text-slate-400">{j.position}</span> : null}
+                      </span>
+                      <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] ${j._kind === "applied" ? "bg-emerald-50 text-emerald-600" : "bg-amber-50 text-amber-600"}`}>
+                        {j._kind === "applied" ? "已投" : "计划投"}
+                      </span>
+                    </a>
+                  ))}
+                </div>
+                <p className="mt-1.5 text-[11px] text-slate-300">点进去到求职看板看进展</p>
+              </div>
+            ) : null}
 
             {/* 随记 */}
             <div>

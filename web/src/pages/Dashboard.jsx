@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { jobStatusStyle, useJobStatuses } from "../colors";
+import { isClosed, isPending } from "../jobs";
 
 function StatCard({ icon: Icon, label, value, sub, to }) {
   return (
@@ -55,7 +56,7 @@ function Card({ title, icon: Icon, to, linkText, children }) {
 }
 
 // ===== 首页板块注册表：顺序与显隐可自定义（settings.dashboard_cards）=====
-const DEFAULT_STATS = ["stat_kb", "stat_jobs", "stat_todos", "stat_expenses"];
+const DEFAULT_STATS = ["stat_kb", "stat_jobs", "stat_batch", "stat_todos", "stat_expenses"];
 const DEFAULT_CARDS = ["card_todos", "card_jobs", "card_kb", "card_notes"];
 
 const STAT_DEFS = [
@@ -68,9 +69,28 @@ const STAT_DEFS = [
   },
   {
     id: "stat_jobs",
-    title: "统计 · 进行中求职",
-    render: ({ activeJobs, jobs }) => (
-      <StatCard icon={Target} label="进行中求职" value={activeJobs.length} sub={jobs.length ? `共投递 ${jobs.length} 家` : "还没有投递记录"} to="/jobs" />
+    title: "统计 · 在池岗位",
+    render: ({ jobStats }) => (
+      <StatCard
+        icon={Target}
+        label="在池岗位"
+        value={jobStats.inPool}
+        sub={jobStats.total ? `已投 ${jobStats.applied} · 待投 ${jobStats.pending}${jobStats.overdue ? ` · 逾期 ${jobStats.overdue}` : ""}` : "还没有投递记录"}
+        to="/jobs"
+      />
+    ),
+  },
+  {
+    id: "stat_batch",
+    title: "统计 · 本包进度",
+    render: ({ jobStats }) => (
+      <StatCard
+        icon={Target}
+        label="本包进度"
+        value={`${jobStats.batchApplied}/${jobStats.batchTotal}`}
+        sub={jobStats.batchTotal ? `今天这一包投了 ${jobStats.batchApplied} 家` : "今天还没排包"}
+        to="/jobs"
+      />
     ),
   },
   {
@@ -118,13 +138,13 @@ const CARD_DEFS = [
   {
     id: "card_jobs",
     title: "求职最新进展",
-    render: ({ jobs, styleOf }) => (
+    render: ({ recentJobs, styleOf }) => (
       <Card title="求职最新进展" icon={Target} to="/jobs" linkText="查看全部">
-        {jobs.length === 0 ? (
+        {recentJobs.length === 0 ? (
           <p className="py-6 text-center text-sm text-slate-400">还没有求职记录</p>
         ) : (
           <div className="space-y-2.5">
-            {jobs.slice(0, 4).map((j) => (
+            {recentJobs.map((j) => (
               <Link key={j.id} to={`/jobs?id=${j.id}`} className="group -mx-1.5 flex items-center justify-between gap-2 rounded-lg px-1.5 py-0.5 transition-colors hover:bg-slate-100/80">
                 <p className="truncate text-sm text-slate-700 transition-colors group-hover:text-terracotta-700">
                   {j.company}
@@ -209,7 +229,7 @@ async function saveDashCfg(cfg) {
 }
 
 export default function Dashboard() {
-  const { styleOf } = useJobStatuses();
+  const { styleOf, statuses } = useJobStatuses();
   const { user } = useAuth();
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
@@ -264,7 +284,25 @@ export default function Dashboard() {
   const monthExpenses = expenses.filter((e) => (e.spent_at || "").startsWith(month));
   const monthExpense = monthExpenses.reduce((s, e) => s + Number(e.amount || 0), 0);
   const todayTodos = todos.filter((t) => !t.done && t.due_date && t.due_date <= today);
-  const activeJobs = jobs.filter((j) => j.status !== "结束");
+  // 口径统一：在池 = 未结束；“已投”只数 applied_date 有值的；“待投”= 未投且还没投递日期
+  const jobStats = (() => {
+    const inPool = jobs.filter((j) => !isClosed(j, statuses));
+    const pending = jobs.filter((j) => isPending(j, statuses));
+    const todayBatch = jobs.filter((j) => (j.batch_date || "") === today);
+    return {
+      total: jobs.length,
+      inPool: inPool.length,
+      applied: jobs.filter((j) => j.applied_date).length,
+      pending: pending.length,
+      overdue: pending.filter((j) => j.plan_date && j.plan_date < today).length,
+      batchTotal: todayBatch.length,
+      batchApplied: todayBatch.filter((j) => j.applied_date).length,
+    };
+  })();
+  // 最新进展按 updated_at 排：以前按 created_at，永远显示最早灌进来的那几条
+  const recentJobs = [...jobs]
+    .sort((a, b) => String(b.updated_at || b.created_at || "").localeCompare(String(a.updated_at || a.created_at || "")))
+    .slice(0, 4);
   const weekAgo = new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10);
   const kbThisWeek = kb.filter((a) => (a.created_at || "").slice(0, 10) >= weekAgo).length;
 
@@ -275,7 +313,7 @@ export default function Dashboard() {
     return days >= 0 && days <= (Number(r.remind_days) || 3);
   });
 
-  const ctx = { kb, todos, expenses, jobs, notes, todayTodos, activeJobs, monthExpenses, monthExpense, kbThisWeek, today, toggleTodo, styleOf };
+  const ctx = { kb, todos, expenses, jobs, notes, todayTodos, jobStats, recentJobs, monthExpenses, monthExpense, kbThisWeek, today, toggleTodo, styleOf };
 
   const move = (list, i, d) => {
     const n = [...list];
