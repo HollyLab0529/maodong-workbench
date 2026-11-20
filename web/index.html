@@ -5,13 +5,37 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>猫冬手帐 · 慢慢记，暖暖存</title>
     <meta name="description" content="小猫守着的个人手帐：知识库、日历、待办、记账与随笔记" />
-    <link rel="manifest" href="/manifest.webmanifest" />
-    <link rel="icon" type="image/png" href="/icon-192.png?v=20261111" />
-    <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=20261111" />
+    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="icon" type="image/png" href="icon-192.png?v=20261111" />
+    <link rel="apple-touch-icon" href="apple-touch-icon.png?v=20261111" />
     <meta name="theme-color" content="#9C3B36" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="猫冬手帐" />
+    <script>
+      // 挂在子路径（作品集里的 /demo/ 反代）时，接口仍按根路径写，这里补前缀。
+      // 根路径部署时 prefix 为空，行为完全不变。
+      (function () {
+        var m = location.pathname.match(/^(.*?\/demo)\//);
+        if (!m) return;
+        var prefix = m[1];
+        var wrap = function (url) {
+          return typeof url === "string" && url.indexOf("/api/") === 0 ? prefix + url : url;
+        };
+        var nativeFetch = window.fetch;
+        window.fetch = function (input, init) {
+          if (typeof input === "string") return nativeFetch.call(this, wrap(input), init);
+          if (input && input.url) return nativeFetch.call(this, wrap(input.url), init);
+          return nativeFetch.call(this, input, init);
+        };
+        var NativeES = window.EventSource;
+        if (NativeES) {
+          window.EventSource = class extends NativeES {
+            constructor(url, cfg) { super(wrap(url), cfg); }
+          };
+        }
+      })();
+    </script>
     <script>
       // 主题防闪烁：在渲染前恢复上次的明暗与配色
       try {
