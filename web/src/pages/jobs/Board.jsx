@@ -91,9 +91,16 @@ export default function Board() {
   const [resumes, setResumes] = useState([]);
   const [ev, setEv] = useState({ title: "", event_date: "", note: "" });
 
-  // 视图与筛选
-  const [view, setView] = useState("list");
-  const [range, setRange] = useState("today");
+  // 视图与筛选：支持从地址栏带初始值（#/jobs?view=cards&range=all），作品集嵌入和分享链接用
+  const bootQuery = new URLSearchParams(window.location.search);
+  const bootView = bootQuery.get("view");
+  const bootRange = bootQuery.get("range");
+  const [view, setView] = useState(() =>
+    ["list", "cards", "calendar"].includes(bootView) ? bootView : "list"
+  );
+  const [range, setRange] = useState(() =>
+    ["today", "overdue", "unscheduled", "all"].includes(bootRange) ? bootRange : "today"
+  );
   const [stageFilter, setStageFilter] = useState("");
   const [q, setQ] = useState("");
   const [fTier, setFTier] = useState("");
