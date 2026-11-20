@@ -72,7 +72,7 @@ function Avatar({ user, size = 34 }) {
 }
 
 export default function Layout({ children }) {
-  const { user, logout } = useAuth();
+  const { user, logout, demoMode } = useAuth();
   const { dark, toggle } = useTheme();
   const [searchOpen, setSearchOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
@@ -300,6 +300,15 @@ export default function Layout({ children }) {
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
+        {/* 演示站声明：访客一进来就得知道这里的东西不是真的 */}
+        {demoMode ? (
+          <div className="flex flex-wrap items-center justify-center gap-x-2 gap-y-0.5 border-b border-amber-200/70 bg-amber-50/80 px-3 py-1.5 text-center text-[11px] leading-relaxed text-amber-800">
+            <span className="font-medium">演示站</span>
+            <span>页面里的公司、岗位、简历、投递记录全是虚构样例，不是真实求职数据，仅供参考。</span>
+            <a href="https://github.com/HollyLab0529/maodong-workbench" target="_blank" rel="noreferrer" className="underline hover:text-amber-900">源码</a>
+          </div>
+        ) : null}
+
         {/* 移动端顶栏：logo + 工具（模块导航移到底部 Tab） */}
         <header className="sticky top-0 z-10 flex items-center gap-1 border-b border-slate-200 bg-slate-50/90 px-3 py-2.5 backdrop-blur md:hidden">
           <CatLogo size={26} rounded={8} className="mr-1 shrink-0" />

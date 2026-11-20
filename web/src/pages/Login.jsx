@@ -61,6 +61,9 @@ export default function Login({ onLogin }) {
             <p className="mt-2 text-sm leading-relaxed text-slate-500">
               一个放在自己服务器上的个人手帐，数据只属于每个账号。
             </p>
+            <p className="mt-2 rounded-lg bg-amber-50/70 px-2.5 py-1.5 text-[11px] leading-relaxed text-amber-800">
+              你现在看到的是演示站，里面的内容全部是虚构样例，仅供参考。
+            </p>
             <div className="mt-8 grid grid-cols-2 gap-x-6 gap-y-5">
               {DEMO_FEATURES.map(({ icon: Icon, title, desc }) => (
                 <div key={title}>
@@ -88,9 +91,9 @@ export default function Login({ onLogin }) {
 
         <form onSubmit={submit} className="space-y-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-soft">
           {demo ? (
-            <div className="rounded-xl border border-slate-200 bg-slate-50/80 p-3 text-xs leading-relaxed text-slate-500">
-              <p className="font-medium text-slate-700">这是在线演示站</p>
-              <p className="mt-1">演示数据每天 04:00 自动重置，随便点、随便改。</p>
+            <div className="rounded-xl border border-amber-200/70 bg-amber-50/70 p-3 text-xs leading-relaxed text-amber-800">
+              <p className="font-medium">这是在线演示站，数据全是虚构的</p>
+              <p className="mt-1">公司、岗位、简历、投递记录都是编的样例，只用来展示界面，仅供参考。演示库每天 04:00 重置，随便点、随便改。</p>
               <button
                 type="button"
                 onClick={() => {
@@ -98,7 +101,7 @@ export default function Login({ onLogin }) {
                   setPassword(demo.password);
                   setError("");
                 }}
-                className="mt-2 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-600 transition-colors hover:border-terracotta-300 hover:text-terracotta-600"
+                className="mt-2 rounded-lg border border-amber-200 bg-white px-3 py-1.5 text-xs text-amber-800 transition-colors hover:border-terracotta-300 hover:text-terracotta-600"
               >
                 填入演示账号
               </button>
