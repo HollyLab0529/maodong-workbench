@@ -6,7 +6,7 @@
 
 ### 新增
 - **求职看板 v2 改版（B0–B3 全量落地）**，对应 `docs/求职看板改版清单.md`：
-  - **服务端**：`/api/data/:coll/bulk` 批量写（事务内全成功或全失败，最多 200 条）；`PATCH job_apps/:id` 自动维护 `status_changed_at` / `rejected_at`；`job_events` 按 `app_id + title + event_date` 去重；删简历时清理关联岗位的 `resume_id`；新增 `/api/jobs/parse-link` 链接预解析。`scripts/migrate_jobs_v2.js`（存量迁移）、`scripts/check_jobs.js`（只读体检）、`scripts/seed_demo.js`（演示数据）三个脚本
+  - **服务端**：`/api/data/:coll/bulk` 批量写（事务内全成功或全失败，最多 200 条）；`PATCH job_apps/:id` 自动维护 `status_changed_at` / `rejected_at`；`job_events` 按 `app_id + title + event_date` 去重；删简历时清理关联岗位的 `resume_id`；新增 `/api/jobs/parse-link` 链接预解析。`scripts/migrate_jobs_v2.js`（存量迁移）、`scripts/check_jobs.js`（只读体检）、`scripts/clean_orphan_uploads.js`（清孤儿上传文件）三个脚本
   - **每日主线重做**：看板拆成「今天 / 本包 / 跟进 / 全量」四个工作区；`web/src/jobs.js` 收口全部状态语义（分组、新岗、逾期、下一步），配置里写了 group 就用配置，不再塌成默认值；投递模式全屏逐家过（已投/跳过，Enter/→ 快捷键），手机上全屏贴底
   - **闭环补齐**：跟进页四块（投了没动静 / 下一步该做的 / 卡住的 / 逾期没投）均带「生成待办」；逾期可「全部挪到今天」；进展时间线按事件日期倒序、可编辑删除、URL 自动成链接、记录时可顺手推进看板状态；简历库搜索 + 「被 N 个岗位引用」反查跳转 + 按天归档折叠 + 在用唯一兜底；面试复盘公司可搜索下拉、零题存草稿、「通过」后一键把看板状态推进
   - **首页与周报口径**：首页改「在池岗位 / 本包进度 x/y」并显示最近更新的岗位；周报补三行硬数据（本期投递按公司类型分桶、回复率 = 有下文/已投、待跟进公司名），空日期的事件不再被丢弃
