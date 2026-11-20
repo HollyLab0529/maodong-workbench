@@ -357,9 +357,18 @@ export default function Dashboard() {
       ) : null}
 
       {cfg.cards.length > 0 ? (
-        <div className="grid gap-4 md:grid-cols-2">
-          {cfg.cards.map((id) => (
-            <div key={id}>{cardMap[id].render(ctx)}</div>
+        <div className="grid gap-4 md:grid-cols-2 md:items-start">
+          {[0, 1].map((col) => (
+            <div key={col} className="contents md:flex md:flex-col md:gap-4">
+              {cfg.cards
+                .map((id, i) => ({ id, i }))
+                .filter(({ i }) => i % 2 === col)
+                .map(({ id, i }) => (
+                  <div key={id} style={{ order: i }}>
+                    {cardMap[id].render(ctx)}
+                  </div>
+                ))}
+            </div>
           ))}
         </div>
       ) : null}
